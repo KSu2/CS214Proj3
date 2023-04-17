@@ -51,6 +51,7 @@ int connect_inet(char *host, char *service)
 int main(int argc, char **argv)
 {
     int sock, bytes;
+    int bytes_written;
     char buf[BUFLEN];
 
     if (argc != 3) {
@@ -62,10 +63,19 @@ int main(int argc, char **argv)
     if (sock < 0) exit(EXIT_FAILURE);
 
     while ((bytes = read(STDIN_FILENO, buf, BUFLEN)) > 0) {
-        write(sock, buf, bytes);
+        buf[bytes] = '\0';
+        printf("read: %s\n", buf);
+        bytes_written = write(sock, buf, bytes);
+       	if (bytes == 0) {
+		    printf("wrote nothing\n");
+	    } else if (bytes == -1) {
+		    printf("error writing to socket\n");
+	    } else if (bytes == 1) {
+		    printf("wrote only 1 byte\n");
+	    }
         // FIXME: should check whether the write succeeded!
     }
-
+    printf("wrote %d bytes\n", bytes_written);
     close(sock);
 
     return EXIT_SUCCESS;

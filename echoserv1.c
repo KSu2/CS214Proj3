@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include <netdb.h>
 #include <signal.h>
 
@@ -100,7 +101,7 @@ void read_data(int sock, struct sockaddr *rem, socklen_t rem_len)
 
     printf("Connection from %s:%s\n", host, port);
 
-    while (active && (bytes = read(sock, buf, BUFSIZE) > 0)) {
+    while (active && ((bytes = read(sock, buf, BUFSIZE)) > 0)) {
         buf[bytes] = '\0';
         printf("[%s:%s] read %d bytes |%s|\n", host, port, bytes, buf);
     }
