@@ -24,6 +24,8 @@ Messages sent by client:
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
+#include <errno.h>
+#include "message.h"
 
 #define BUFLEN 256
 
@@ -83,7 +85,7 @@ void read_data(int sock, struct sockaddr *rem, socklen_t rem_len)
 
     printf("Connection from %s:%s\n", host, port);
 
-    while (active && ((bytes = read(sock, buf, BUFSIZE)) > 0)) {
+    while (((bytes = read(sock, buf, BUFSIZE)) > 0)) {
         buf[bytes] = '\0';
         printf("[%s:%s] read %d bytes |%s|\n", host, port, bytes, buf);
         //once we reach new line we're done reading
@@ -104,7 +106,11 @@ void read_data(int sock, struct sockaddr *rem, socklen_t rem_len)
 }
 
 int main(int argc, char **argv) { 
-    int sock, bytes;
+    int sock, bytes, active = 1;
+    
+    struct sockaddr_storage remote_host;
+    socklen_t remote_host_len;
+    
     char buf[BUFLEN];
 
     //not enough arguments
@@ -127,9 +133,21 @@ int main(int argc, char **argv) {
     }
 
     //after connection start loop to read from the stdin
-    while ((bytes = read(STDIN_FILENO, buf, BUFLEN)) > 0) {
-        buf[bytes] = '\0';
+    while(active){
+        remote_host_len = sizeof(remote_host);
+        //get next line from the 
+        while ((bytes = read(STDIN_FILENO, buf, BUFLEN)) > 0) {
+            if(buf[bytes - 1] == '\n') {
+                buf[bytes] = '\0';
+                break;
+            }
+        }
+        //write to serv
         write(sock, buf, bytes);
+    
+        //read from serv
+        printf("waiting for serv message...\n");
+        read_message(sock, (struct sockaddr *)&remote_host, remote_host_len);
     }
 
     close(sock);

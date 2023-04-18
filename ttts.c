@@ -15,7 +15,7 @@
 #include <signal.h>
 #include <time.h>
 
-#include "messages.h"
+#include "message.h"
 
 #define QUEUE_SIZE 8
 
@@ -24,6 +24,13 @@
 static int grid[9];
 
 volatile int active = 1;
+
+//given row, col and grid check if the cell is free
+int valid_move(int row, int col) {
+    int free = 1;
+    if((grid[((row - 1) + (col - 1))] == 1) || (grid[((row - 1) + (col - 1))] == 2)) free = 0;
+    return free;
+}
 
 void handler(int signum)
 {
@@ -95,48 +102,6 @@ int open_listener(char *service, int queue_size)
     return sock;
 }
 
-#define BUFSIZE 256
-#define HOSTSIZE 100
-#define PORTSIZE 10
-char* read_message(int sock, struct sockaddr *rem, socklen_t rem_len)
-{
-    char buf[BUFSIZE + 1], host[HOSTSIZE], port[PORTSIZE];
-    
-    int size, bytes, error;
-    char* message; 
-
-    error = getnameinfo(rem, rem_len, host, HOSTSIZE, port, PORTSIZE, NI_NUMERICSERV);
-    if (error) {
-        fprintf(stderr, "getnameinfo: %s\n", gai_strerror(error));
-        strcpy(host, "??");
-        strcpy(port, "??");
-    }
-
-    printf("Connection from %s:%s\n", host, port);
-
-    while (active && ((bytes = read(sock, buf, BUFSIZE)) > 0)) {
-        printf("[%s:%s] read %d bytes |%s|\n", host, port, bytes, buf);
-        //once we reach new line we're done reading
-        size += bytes;
-        if(buf[bytes - 1] == '\n') {
-            buf[bytes] = '\0';
-            break;
-        }
-    }
-
-	if (bytes == 0) {
-		printf("[%s:%s] got EOF\n", host, port);
-	} else if (bytes == -1) {
-		printf("[%s:%s] terminating: %s\n", host, port, strerror(errno));
-	} else {
-		printf("[%s:%s] terminating\n", host, port);
-	}
-    message = malloc(size + 2);
-    strcpy(message, buf);
-    //close(sock);
-    return message;
-}
-
 void reap() {
     int pid;
     //repeatedly wait until all zombies are reaped
@@ -148,6 +113,10 @@ void reap() {
 int main(int argc, char **argv)
 {
     srand(time(NULL));
+    //1 - represent player 1 move (X)
+    //2 - represent player 2 move (O)
+    grid = {0, 0, 0, 0, 0, 0, 0, 0, 0}
+
     struct sockaddr_storage remote_host;
     socklen_t remote_host_len;
     int player_num = 0;
@@ -181,26 +150,32 @@ int main(int argc, char **argv)
             if(player_num == 0) {
                 sock1 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
                 puts("player 1 connected");
+                write(sock1, "WAIT", 5);
             }
             if(player_num == 1) {
                 sock2 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
                 puts("player 2 connected");
+                write(sock1, "WAIT", 5);
             }
             player_num++;
         }
+        //init(sock1, sock2);
         //randomly generate a number to decide who goes first 
         // r = 0 represents player 1 turn 
         // r = 1 represents player 2 turn
         close(listener);
         if(!r) { 
             message = read_message(sock1, (struct sockaddr *)&remote_host, remote_host_len);
+            args = parse_message(message);
+            perform_action(args, sock1);
             r = 1;
         } else { 
             message = read_message(sock2, (struct sockaddr *)&remote_host, remote_host_len);
+            args = parse_message(message);
+            perform_action(args, sock2);
+            r = 0;
         }
         printf("message received from sock: %s\n", message);
-        args = parse_message(message);
-        
     }
 
     free(message);

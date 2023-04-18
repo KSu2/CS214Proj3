@@ -13,7 +13,7 @@ xmit: xmit.o
 xmit.o: xmit.c
 	$(CC) $(CCFLAGS) -c $^
 
-ttt: ttt.o
+ttt: ttt.o message.o
 	$(CC) $(CCFLAGS) $^ -o $@
 
 ttt.o: ttt.c
@@ -30,6 +30,12 @@ message: messages.o
 
 message.o: message.c
 	$(CC) $(CCFLAGS) -c message.c
+
+test_client: test_client.o
+	$(CC) $(CCFLAGS) $^ -o $@
+
+test_client.o: test_client.c
+	$(CC) $(CCFLAGS) -c test_client.c
 
 clean: 
 	rm -rf  *.o myshell
