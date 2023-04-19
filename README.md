@@ -1,8 +1,8 @@
 # CS214Proj3
 
-##Test Plan
+## Test Plan
 
-##How to run code
+## How to run code
 
 Build necessary executables:
 ```
