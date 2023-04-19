@@ -16,19 +16,20 @@
 #include <time.h>
 
 #include "message.h"
+#include "ttt_game.h" 
 
 #define QUEUE_SIZE 8
 
 //array to store the grid of the game
 //
-static int grid[9];
+static char grid[9];
 
 volatile int active = 1;
 
 //given row, col and grid check if the cell is free
 int valid_move(int row, int col) {
     int free = 1;
-    if((grid[((row - 1) + (col - 1))] == 1) || (grid[((row - 1) + (col - 1))] == 2)) free = 0;
+    if((grid[((row - 1) + (col - 1))] == 'X') || (grid[((row - 1) + (col - 1))] == 'O')) free = 0;
     return free;
 }
 
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
     srand(time(NULL));
     //1 - represent player 1 move (X)
     //2 - represent player 2 move (O)
-    grid = {0, 0, 0, 0, 0, 0, 0, 0, 0}
+    grid = {' ',' ',' ',' ',' ',' ',' ',' ',' '}
 
     struct sockaddr_storage remote_host;
     socklen_t remote_host_len;
