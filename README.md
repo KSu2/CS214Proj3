@@ -8,3 +8,5 @@ Build necessary executables:
 ```
 make ttts
 ```
+
+## Proof of code working properly
