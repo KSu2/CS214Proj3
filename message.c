@@ -13,6 +13,7 @@
 #include <signal.h>
 
 #include "message.h"
+#include "ttt_game.h"
 
 #define BUFSIZE 264
 #define HOSTSIZE 100
