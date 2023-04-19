@@ -112,6 +112,7 @@ void reap() {
 
 int main(int argc, char **argv)
 {
+    signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
     //1 - represent player 1 move (X)
     //2 - represent player 2 move (O)

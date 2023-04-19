@@ -14,15 +14,31 @@
 
 #include "message.h"
 
-//method to read message from socket
-#define BUFSIZE 256
+#define BUFSIZE 264
 #define HOSTSIZE 100
 #define PORTSIZE 10
+
+struct handle {
+    char buf[BUFSIZE];
+    int length;
+    int fd;
+}
+
+struct message { 
+    char* message;
+    int length;
+}
+
+//method to read message from socket
 char* read_message(int sock, struct sockaddr *rem, socklen_t rem_len)
 {
     char buf[BUFSIZE + 1], host[HOSTSIZE], port[PORTSIZE];
     
-    int size, bytes, error;
+    int bytes, error;
+    int size = 0;
+    int count = 0;
+    //the expected number of fields for this specific message code
+    int expected;
     char* message; 
 
     error = getnameinfo(rem, rem_len, host, HOSTSIZE, port, PORTSIZE, NI_NUMERICSERV);
@@ -34,13 +50,38 @@ char* read_message(int sock, struct sockaddr *rem, socklen_t rem_len)
 
     printf("Connection from %s:%s\n", host, port);
 
-    while (((bytes = read(sock, buf, BUFSIZE)) > 0)) {
+    //read to buffer
+    bytes = read(sock, buf + size, BUFSIZE);
+
+    //check the first four characters of the buf this should be the code
+    char msg_header[5];
+    strncpy(msg_header, message, 4);
+    msg_header[4] = '\0';
+    printf("msg_header: %s\n", msg_header);
+
+    if(strcmp(msg_header, "PLAY") == 0) {
+        epxected = 3;
+    } else if(strcmp(msg_header, "MOVE") == 0) {
+        expected = 4;
+    } else if(strcmp(msg_header, "RSGN") == 0) {
+        expected = 1;
+    } else if(strcmp(msg_header, "DRAW") == 0) {
+        expected = 3;
+    } else {
+        //this is an invalid message
+    }
+
+
+    while (((bytes = read(sock, buf + size, BUFSIZE)) > 0)) {
         printf("[%s:%s] read %d bytes |%s|\n", host, port, bytes, buf);
         //once we reach new line we're done reading
         size += bytes;
-        if(buf[bytes - 1] == '\n') {
-            buf[bytes] = '\0';
-            break;
+        //iterate over buffer to find if it has the right number of '|'
+        for(int i = 0; i < bytes; i++) {
+            //we've encountered a '|' symbol meaning a field has ended
+            if(buf[i + size] == '|') {
+                count++;
+            }
         }
     }
 
