@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "ttt_game.h"
 
 /*
@@ -13,15 +14,15 @@ char* drawBoard(char* board,char letter,int* pos){
     if(x<1||y>3)
         return "inv";
     if(x==2 && y==1){
-        if(board[3]==' ') board[3] = letter; else return "inv";
+        if(board[3]=='.') board[3] = letter; else return "inv";
     }else if (x==2 && y==2){
-        if(board[4]==' ') board[4] = letter; else return "inv";
+        if(board[4]=='.') board[4] = letter; else return "inv";
     }else if (x==2 && y==2){
-        if(board[4]==' ') board[6] = letter; else return "inv";
+        if(board[4]=='.') board[6] = letter; else return "inv";
     }else if (x==2 && y==2){
-        if(board[4]==' ') board[7] = letter; else return "inv";
+        if(board[4]=='.') board[7] = letter; else return "inv";
     }else{
-        if(board[x*y]==' ') board[x*y] = letter; else return "inv";
+        if(board[x*y]=='.') board[x*y] = letter; else return "inv";
     }
     return board;
 }
@@ -51,12 +52,25 @@ int checkWin(char* board){
         if(board[0]=='X')return 1; return 2;
     }else if(board[2]==board[4]&&board[4]==board[6]){
         if(board[0]=='X')return 1; return 2;
-    }else if(square[0] != ' ' && square[1] != ' ' && square[2] != ' ' 
-            &&square[3] != ' ' && square[4] != ' ' && square[5] != ' ' 
-            && square[6] != ' ' && square[7] != ' ' && square[8] != ' '){
+    }else if(square[0] != '.' && square[1] != '.' && square[2] != '.' 
+            &&square[3] != '.' && square[4] != '.' && square[5] != '.' 
+            && square[6] != '.' && square[7] != '.' && square[8] != '.'){
         return 0;
     }else{
         return -1;
     }
+    
+}
+/*
+prints out board in string format send to client
+*/
+char* showBoard(char* board){
+    char* show = "|";
+    for (int i = 0; i < strlen(board); i++)
+    {
+       strcat(show,board[i]);
+    }
+    
+    return strcat(show,"|");
     
 }

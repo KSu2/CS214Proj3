@@ -117,7 +117,7 @@ int main(int argc, char **argv)
     srand(time(NULL));
     //1 - represent player 1 move (X)
     //2 - represent player 2 move (O)
-    grid = {' ',' ',' ',' ',' ',' ',' ',' ',' '}
+    grid = {'.','.','.','.','.','.','.','.','.'}
 
     struct sockaddr_storage remote_host;
     socklen_t remote_host_len;
