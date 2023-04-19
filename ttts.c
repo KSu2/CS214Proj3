@@ -115,8 +115,6 @@ int main(int argc, char **argv)
 {
     signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
-    //1 - represent player 1 move (X)
-    //2 - represent player 2 move (O)
     grid = {'.','.','.','.','.','.','.','.','.'}
 
     struct sockaddr_storage remote_host;
@@ -125,6 +123,7 @@ int main(int argc, char **argv)
     int sock1;
     int sock2;
     int r;
+    int status = -1;
 
     char* message;
     char** args;
@@ -145,7 +144,7 @@ int main(int argc, char **argv)
     } else {
         printf("Player 2 goes first\n");
     }
-    while (active) {
+    while (active && status == -1) {
         remote_host_len = sizeof(remote_host);
         //wait for two players to join the current session before starting the game
         while (player_num < 3) {
@@ -170,15 +169,35 @@ int main(int argc, char **argv)
             message = read_message(sock1, (struct sockaddr *)&remote_host, remote_host_len);
             args = parse_message(message);
             perform_action(args, sock1);
+            status = checkBoard(grid);
             r = 1;
         } else { 
             message = read_message(sock2, (struct sockaddr *)&remote_host, remote_host_len);
             args = parse_message(message);
             perform_action(args, sock2);
+            status = checkBoard(grid);
             r = 0;
         }
         printf("message received from sock: %s\n", message);
     }
+    switch (status)
+    {
+        case 0:
+            puts("Draw");
+            break;
+        case 1:
+            puts("X wins");
+            break;
+        case 2:
+            puts("O wins");
+            break;
+        case 3:
+            puts("Someone resigned");
+            
+        default:
+            break;
+    }
+
 
     free(message);
     puts("Shutting down");
