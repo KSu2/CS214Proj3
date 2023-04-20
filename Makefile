@@ -19,7 +19,7 @@ ttt: ttt.o message.o
 ttt.o: ttt.c
 	$(CC) $(CCFLAGS) -c $^
 
-ttts: ttts.o message.o
+ttts: ttts.o message.o ttt_game.o
 	$(CC) $(CCFLAGS) $^ -o $@
 
 ttts.o: ttts.c
@@ -30,6 +30,12 @@ message: messages.o
 
 message.o: message.c
 	$(CC) $(CCFLAGS) -c message.c
+
+ttt_game: ttt_game.o
+	$(CC) $(CCFLAGS) $^ -o $@
+
+ttt_game.o: ttt_game.c
+	$(CC) $(CCFLAGS) -c ttt_game.c
 
 test_client: test_client.o
 	$(CC) $(CCFLAGS) $^ -o $@
