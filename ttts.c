@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 {
     signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
-    grid = {'.','.','.','.','.','.','.','.','.'}
+    grid = ".........";
 
     struct sockaddr_storage remote_host;
     socklen_t remote_host_len;
