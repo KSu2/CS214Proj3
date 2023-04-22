@@ -22,7 +22,7 @@
 
 //array to store the grid of the game
 //
-static char grid[9];
+static char grid[9] = {'.','.','.','.','.','.','.','.','.'};
 
 volatile int active = 1;
 
@@ -115,7 +115,6 @@ int main(int argc, char **argv)
 {
     signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
-    grid = ".........";
 
     struct sockaddr_storage remote_host;
     socklen_t remote_host_len;

@@ -61,7 +61,7 @@ char* read_message(int sock, struct sockaddr *rem, socklen_t rem_len)
     printf("msg_header: %s\n", msg_header);
 
     if(strcmp(msg_header, "PLAY") == 0) {
-        epxected = 3;
+        expected = 3;
     } else if(strcmp(msg_header, "MOVE") == 0) {
         expected = 4;
     } else if(strcmp(msg_header, "RSGN") == 0) {
