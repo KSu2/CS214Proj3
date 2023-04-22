@@ -21,17 +21,9 @@
 #define QUEUE_SIZE 8
 
 //array to store the grid of the game
-//
-static char grid[9];
+static char grid[9]={'.','.','.','.','.','.','.','.','.'};
 
 volatile int active = 1;
-
-//given row, col and grid check if the cell is free
-int valid_move(int row, int col) {
-    int free = 1;
-    if((grid[((row - 1) + (col - 1))] == 'X') || (grid[((row - 1) + (col - 1))] == 'O')) free = 0;
-    return free;
-}
 
 void handler(int signum)
 {
@@ -115,9 +107,6 @@ int main(int argc, char **argv)
 {
     signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
-    //1 - represent player 1 move (X)
-    //2 - represent player 2 move (O)
-    grid = {' ',' ',' ',' ',' ',' ',' ',' ',' '}
 
     struct sockaddr_storage remote_host;
     socklen_t remote_host_len;
@@ -125,6 +114,7 @@ int main(int argc, char **argv)
     int sock1;
     int sock2;
     int r;
+    int err;
 
     char* message;
     char** args;
@@ -145,6 +135,10 @@ int main(int argc, char **argv)
     } else {
         printf("Player 2 goes first\n");
     }
+
+    //handler for the current message being read
+    handle_t h;
+    message_t m;
     while (active) {
         remote_host_len = sizeof(remote_host);
         //wait for two players to join the current session before starting the game
@@ -152,22 +146,33 @@ int main(int argc, char **argv)
             if(player_num == 0) {
                 sock1 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
                 puts("player 1 connected");
-                write(sock1, "WAIT", 5);
+                printf("sock1: %d\n", sock1);
+                //h1.sock = sock1;
+                //write(sock1, "WAIT", 5);
             }
             if(player_num == 1) {
                 sock2 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
                 puts("player 2 connected");
-                write(sock1, "WAIT", 5);
+                printf("sock2: %d\n", sock2);
+                //h2.sock = sock2;
+                //write(sock1, "WAIT", 5);
             }
             player_num++;
         }
+
         //init(sock1, sock2);
         //randomly generate a number to decide who goes first 
         // r = 0 represents player 1 turn 
         // r = 1 represents player 2 turn
+
         close(listener);
         if(!r) { 
-            message = read_message(sock1, (struct sockaddr *)&remote_host, remote_host_len);
+            h.sock = sock1;
+            err = read_message(h, m);
+            h1.sock = sock1;
+            h1.buf = message;
+            //check if there was some error
+            if(!err || err == -1) printf("there was an ERROR!\n");
             args = parse_message(message);
             perform_action(args, sock1);
             r = 1;

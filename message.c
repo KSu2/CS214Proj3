@@ -18,29 +18,34 @@
 #define HOSTSIZE 100
 #define PORTSIZE 10
 
-struct handle {
-    char buf[BUFSIZE];
-    int length;
-    int fd;
-}
+//handle stores:
+//the entire buffer (with the current message and any fragments of the next message)
+//length - the length of the buffer
+//sock - the socket the message was read from 
 
-struct message { 
-    char* message;
-    int length;
-}
+//message stores: 
+//the discrete message that needs to be used to parse message
+//the length of the message
 
 //method to read message from socket
-char* read_message(int sock, struct sockaddr *rem, socklen_t rem_len)
+//write message to message
+//return 0 or -1 on failure
+//return 1 on success
+int receive_message(handle_t handler, message_t message)
 {
-    char buf[BUFSIZE + 1], host[HOSTSIZE], port[PORTSIZE];
-    
-    int bytes, error;
+    char buf[BUFSIZE + 1]
+    //get the socket from the handler struct
+    int sock = handler.sock;
+    int bytes, error, i;
     int size = 0;
     int count = 0;
     //the expected number of fields for this specific message code
     int expected;
     char* message; 
+    char* size;
 
+    /**
+    //address-to-name translation
     error = getnameinfo(rem, rem_len, host, HOSTSIZE, port, PORTSIZE, NI_NUMERICSERV);
     if (error) {
         fprintf(stderr, "getnameinfo: %s\n", gai_strerror(error));
@@ -49,6 +54,7 @@ char* read_message(int sock, struct sockaddr *rem, socklen_t rem_len)
     }
 
     printf("Connection from %s:%s\n", host, port);
+    */
 
     //read to buffer
     bytes = read(sock, buf + size, BUFSIZE);
@@ -69,22 +75,42 @@ char* read_message(int sock, struct sockaddr *rem, socklen_t rem_len)
         expected = 3;
     } else {
         //this is an invalid message
+        return -1;
     }
 
+    char len_mess[3];
+    //check the next field to see how many bytes the rest of the message should be
+    i = 5;
+    while(buf[i] != '|') {
+        len_mess[i - 5] = buf[i]; 
+        i++;
+    }
 
+    int len = atoi(len_mess);
+    printf("expected length of message: %d\n", len);
+
+    message = malloc(BUFSIZE);
     while (((bytes = read(sock, buf + size, BUFSIZE)) > 0)) {
         printf("[%s:%s] read %d bytes |%s|\n", host, port, bytes, buf);
-        //once we reach new line we're done reading
         size += bytes;
         //iterate over buffer to find if it has the right number of '|'
-        for(int i = 0; i < bytes; i++) {
+        for(i = size; i < bytes; i++) {
             //we've encountered a '|' symbol meaning a field has ended
-            if(buf[i + size] == '|') {
+            if(count == expected) { 
+                //should keep track of where in the buffer we are
+                break;
+            } else if(buf[i + size] == '|') {
                 count++;
             }
+            //once count == expected we should stop
+            //these bytes should be copied to 
         }
+        //copy the first size bytes from buf to message
+        //the rest of the string should be copied after this
+        strncpy(message, buf, size);
     }
 
+    /**
 	if (bytes == 0) {
 		printf("[%s:%s] got EOF\n", host, port);
 	} else if (bytes == -1) {
@@ -92,13 +118,12 @@ char* read_message(int sock, struct sockaddr *rem, socklen_t rem_len)
 	} else {
 		printf("[%s:%s] terminating\n", host, port);
 	}
-    message = malloc(size + 2);
-    strcpy(message, buf);
-    //close(sock);
+    */
+
     return message;
 }
 
-
+/**
 //argument is the string message received from either client or server
 //this should determine what type of message it is and return an array with the arguments
 char** parse_message(char *message) { 
@@ -162,6 +187,7 @@ char** parse_message(char *message) {
     
     return args;
 }
+*/
 
 //given the msg_type and args perform the appropriate response
 //fd is the fd to write to
