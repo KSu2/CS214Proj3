@@ -107,10 +107,7 @@ int main(int argc, char **argv)
 {
     signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
-<<<<<<< HEAD
-=======
     grid = ".........";
->>>>>>> efe3aa00d4d356ad432cc7b649e30105f3f6c092
 
     struct sockaddr_storage remote_host;
     socklen_t remote_host_len;
@@ -118,11 +115,7 @@ int main(int argc, char **argv)
     int sock1;
     int sock2;
     int r;
-<<<<<<< HEAD
-    int err;
-=======
     int status = -1;
->>>>>>> efe3aa00d4d356ad432cc7b649e30105f3f6c092
 
     char* message;
     char** args;
@@ -143,15 +136,11 @@ int main(int argc, char **argv)
     } else {
         printf("Player 2 goes first\n");
     }
-<<<<<<< HEAD
 
     //handler for the current message being read
     handle_t h;
     message_t m;
     while (active) {
-=======
-    while (active && status == -1) {
->>>>>>> efe3aa00d4d356ad432cc7b649e30105f3f6c092
         remote_host_len = sizeof(remote_host);
         //wait for two players to join the current session before starting the game
         while (player_num < 3) {
