@@ -25,6 +25,7 @@ char* drawBoard(char* board,char letter,int* pos){
         if(board[x*y]=='.') board[x*y] = letter; else return "inv";
     }
     return board;
+
 }
 /*
 pass in current board
@@ -61,6 +62,16 @@ int checkWin(char* board){
     }
     
 }
+<<<<<<< HEAD
+
+//given row, col and grid check if the cell is free
+int valid_move(char* board, int row, int col, char player) {
+    int valid == 1;
+    if(board[(row - 1) + (col - 1)] != '.') {
+        valid = 0;
+    }
+    return valid;
+=======
 /*
 prints out board in string format send to client
 */
@@ -73,4 +84,5 @@ char* showBoard(char* board){
     
     return strcat(show,"|");
     
+>>>>>>> efe3aa00d4d356ad432cc7b649e30105f3f6c092
 }
