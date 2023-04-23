@@ -20,8 +20,8 @@
 
 #define QUEUE_SIZE 8
 
-//array to store the grid of the game
-static char grid[9]={'.','.','.','.','.','.','.','.','.'};
+//string representing the current state of the board
+char *board;
 
 volatile int active = 1;
 
@@ -107,7 +107,6 @@ int main(int argc, char **argv)
 {
     signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
-    grid = ".........";
 
     struct sockaddr_storage remote_host;
     socklen_t remote_host_len;
@@ -116,12 +115,14 @@ int main(int argc, char **argv)
     int sock2;
     int r;
     int status = -1;
-
-    char* message;
+    int err;
+    //char* message;
     char** args;
+    char curr_move;
     //if there's an argument use it for the port number 
     //otherwise default to using port 15000
     char *service = argc == 2 ? argv[1] : "15000";
+    board = malloc(sizeof(char) * 9);
 
 	install_handlers();
 	
@@ -138,54 +139,76 @@ int main(int argc, char **argv)
     }
 
     //handler for the current message being read
+
+    //initialize structs
     handle_t h;
     message_t m;
+    handle_t *hPtr = &h;
+    message_t *mPtr = &m;
+    m.message = malloc(264);
+    h.buf = malloc(264);
+
     while (active) {
         remote_host_len = sizeof(remote_host);
         //wait for two players to join the current session before starting the game
+        //FOR TESTING PURPOSES COMMENTING THIS OUT 
         while (player_num < 3) {
             if(player_num == 0) {
                 sock1 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
                 puts("player 1 connected");
-                printf("sock1: %d\n", sock1);
+                //printf("sock1: %d\n", sock1);
                 //h1.sock = sock1;
                 //write(sock1, "WAIT", 5);
             }
             if(player_num == 1) {
                 sock2 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
                 puts("player 2 connected");
-                printf("sock2: %d\n", sock2);
+                //printf("sock2: %d\n", sock2);
                 //h2.sock = sock2;
                 //write(sock1, "WAIT", 5);
             }
             player_num++;
         }
 
-        //init(sock1, sock2);
+        //printf("PLAYERS CONNECTED!\n");
         //randomly generate a number to decide who goes first 
         // r = 0 represents player 1 turn 
         // r = 1 represents player 2 turn
 
         close(listener);
+        //COMMENTING THIS OUT FOR TESTING
         if(!r) { 
-            h.sock = sock1;
-            err = read_message(h, m);
-            h1.sock = sock1;
-            h1.buf = message;
-            //check if there was some error
-            if(!err || err == -1) printf("there was an ERROR!\n");
-            args = parse_message(message);
-            perform_action(args, sock1);
-            status = checkBoard(grid);
+            h.fd = sock1;
+            curr_move = 'X';
             r = 1;
+            printf("PLAYER 1 TURN\n");
         } else { 
-            message = read_message(sock2, (struct sockaddr *)&remote_host, remote_host_len);
-            args = parse_message(message);
-            perform_action(args, sock2);
-            status = checkBoard(grid);
+            h.fd = sock2;
+            curr_move = 'Y';
             r = 0;
+            printf("PLAYER 2 TURN\n");
         }
-        printf("message received from sock: %s\n", message);
+
+        err = read_message(hPtr, mPtr);
+        parse_message(mPtr);
+        display_args(mPtr);
+
+        printf("message received from sock: %s\n", m.message);
+        printf("message length: %d\n", m.length);
+        printf("buffer received from sock: %s\n", h.buf);
+        printf("buffer length: %d\n", h.length);
+
+        //check if there was some error
+        if(!err || err == -1){
+            printf("there was an ERROR!\n");
+            write(sock1, "INVL|12|BAD MESSAGE|", 20);
+            //write(sock2, "INVL|12|BAD MESSAGE|", 20);
+            printf("closing connection\n");
+            break;
+        } 
+        //args = parse_message(message);
+        perform_action(m.args, board, h.fd);
+        //status = checkWin(grid);
     }
     switch (status)
     {
@@ -205,8 +228,9 @@ int main(int argc, char **argv)
             break;
     }
 
-
-    free(message);
+    //no need to fre this anymore since we are using struct to store the message
+    //free(message);
+    //free(m.message);
     puts("Shutting down");
     close(sock1);
     close(sock2);

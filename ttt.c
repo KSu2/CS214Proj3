@@ -25,7 +25,6 @@ Messages sent by client:
 #include <netdb.h>
 #include <string.h>
 #include <errno.h>
-#include "message.h"
 
 #define BUFLEN 256
 
@@ -145,9 +144,10 @@ int main(int argc, char **argv) {
         //write to serv
         write(sock, buf, bytes);
     
-        //read from serv
+        /**
         printf("waiting for serv message...\n");
         read_message(sock, (struct sockaddr *)&remote_host, remote_host_len);
+        */
     }
 
     close(sock);
