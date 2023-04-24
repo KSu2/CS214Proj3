@@ -34,22 +34,41 @@
 int read_message(handle_t *h, message_t *m)
 {
     char buf[BUFSIZE + 1];
+
     //get the socket from the handler struct
     int sock = h->fd;
     int bytes, error, i;
     int total_bytes = 0;
     int count = 0;
+
     //the expected number of fields for this specific message code
     int expected;
+
+    m->message = malloc(BUFSIZE);
+    h->buf = malloc(BUFSIZE);
+
     char* message = m->message; 
     char* buffer = h->buf;
     int active = 1;
+    
+    /**
+    //check if there's anything in the buffer if there is copy it to the front of the buf
+    if(h->length != 0) { 
+        strcpy(buffer, buf);
+        size += h->length;
+    }
+    */
 
     //read to buffer
-    bytes = read(sock, buf, BUFSIZE);
+    bytes = read(sock, buf + total_bytes, BUFSIZE);
     printf("read %d bytes: %s\n", bytes, buf);
 
-    //bytes = read(sock, buf, BUFSIZE);
+    //the shortest message is HEAD|1|A| which is 9 bytes
+    //if bytes < 9 then we can say that it is an invalid message
+    if(bytes < 9) {
+        strcpy(message, "INVL|21|MESSAGE TOO SHORT|");
+        return -1;
+    }
 
     //check the first four characters of the buf this should be the code
     char msg_header[5];
@@ -67,6 +86,7 @@ int read_message(handle_t *h, message_t *m)
         expected = 3;
     } else {
         //this is an invalid message
+        strcpy(message, "INVL|23|MESSAGE HEADER INVALID|");
         return -1;
     }
 
@@ -102,17 +122,19 @@ int read_message(handle_t *h, message_t *m)
     if(exp_len > 255) { 
         return -1;
     }
-    exp_len += bytes;
+    
+
+    exp_len += (i + 1);
+    printf("exp_len: %d\n", exp_len);
 
     do {
         //printf("read %d bytes: %s\n", bytes, buf);
         //return -1;
         //iterate over buffer to find if it has the right number of '|'
         
-        /*
-        i = size;
-        while(count != expected) {
-            printf("count: %d\n", count);
+        i = total_bytes;
+        while((count!=expected) && (i < bytes)) {
+            //printf("count: %d\n", count);
             //we've encountered a '|' symbol meaning a field has ended
             if(buf[i] == '|') {
                 count++;
@@ -121,18 +143,18 @@ int read_message(handle_t *h, message_t *m)
             //once count == expected we should stop
             //these bytes should be copied to 
         }
-        */
-    
-        //loop to iterate through the current part of the buffer
-        for(i = total_bytes; i < (bytes + total_bytes); i++) {
-            if(buf[i] == '|') { 
-                count++; 
-            }
-        }
 
-        if(count == expected) { 
+        printf("i: %d\n", i);
+        
+        //we have reached the correct number of bars in the correct number of bytes
+        if((count == expected) && (exp_len == i)) { 
             active = 0;
             strncpy(message, buf, i);
+        } else if((count == expected) && (exp_len != i)) { 
+            //if we reached the right number of bars without reading the right number of bytes return -1
+            return -1;
+        } else if((count != expected) && (exp_len <= i)) { 
+            return -1;
         }
         total_bytes += bytes;
         //copy the first size bytes from buf to message
@@ -142,7 +164,7 @@ int read_message(handle_t *h, message_t *m)
         //we continue reading from the buffer to see if there's any extra info sent that should all be stored in the
         //printf("number of bytes: %d\n", bytes);
         //we should only be calling read again in the case that 
-        //we have not reached a '|' yet and we're still below the expected number of bytes
+        //we have not reached a the correct number of '|' yet and we're still below the expected number of bytes
     } while(active && ((bytes = read(sock, buf + total_bytes, BUFSIZE - total_bytes)) > 0));
 
     //while((active) && (total_bytes < exp_len) && ((bytes = read(sock, buf + total_bytes, BUFSIZE - total_bytes)) > 0));
@@ -154,9 +176,9 @@ int read_message(handle_t *h, message_t *m)
     //printf("total_bytes: %d\n", total_bytes);
     //strncpy(message, buf, i);
     //strncpy(buffer, buf, size);
-    strncpy(buffer, buf, BUFSIZE - 1);
-    message[i - 1] = '\0';
-    buffer[i - 1] = '\0';
+    strncpy(buffer, buf, total_bytes - i);
+    message[i] = '\0';
+    buffer[i] = '\0';
     h->length = i;
     m->length = total_bytes;
     m->fields = expected;
@@ -226,20 +248,20 @@ void display_args(message_t *m) {
 //-1: if failed for any eason
 //the position of the move if possible
 //0 ow
-int perform_action(char **args, char* board, int fd, int other_player) {
+int perform_action(char **args, char* board, int fd, int other_player, int draw_suggested) {
     //TODO: fill in implementation 
     //check if previous message was invalid message first 
     int status = 1;
     if(strcmp(args[0], "INVL") == 0) {
         //write to client INVL
         printf("INVALID MESSAGE\n");
-        free(args[0]);
+        //free(args[0]);
         char *str_to_send = "INVL|23|INVALID MESSAGE FORMAT|";
         write(fd, str_to_send, strlen(str_to_send));
     } else if ((atoi(args[1]) > 255) || (atoi(args[1]) < 0)){
         //message length field should be between 0 - 255 
         //ow write the INVL message
-        free(args[0]);
+        //free(args[0]);
         char *str_to_send = "INVL|13|LEN TOO LONG|";
         write(fd, str_to_send, strlen(str_to_send));
     } else {
@@ -288,9 +310,20 @@ int perform_action(char **args, char* board, int fd, int other_player) {
             write(fd, str_to_send, strlen(str_to_send));
         } else if(strcmp(args[0], "RSGN") == 0) {
             //do something
-            //send the 
-            char *str_to_send = "OVER|23|W|Player x has resigned|";
+            //send the appropriate message
+
+            //TODO: instead of "You have resigned" and "Other player has resigned"
+            //change to the name of the player that has resigned
+            //probably by setting the name of the current player to the message struct or smthn
+
+            char *str_to_send;
+            str_to_send = "OVER|20|L|You have resigned|";
             write(fd, str_to_send, strlen(str_to_send));
+
+            str_to_send = "OVER|27|W|Other player has resigned|";
+            write(other_player, str_to_send, strlen(str_to_send));
+
+            //set status to tell the game who won
             status = 3;
         } else if(strcmp(args[0], "DRAW") == 0) {
             //do something
@@ -301,27 +334,27 @@ int perform_action(char **args, char* board, int fd, int other_player) {
                 //send DRAW|2|S| to other player
                 write(other_player, "DRAW|2|S|", 10);
                 status = -2;
-            } 
-            /**
-            else if(strcmp(args[2], "A")) {
+            } else if(strcmp(args[2], "A") && draw_suggested) {
                 //need to check if the previous mesage was a DRAW|2|S|
                 //if so set status to 3
                 char *str_to_send;
-                char temp_string[];
+                //char temp_string[];
                 status = 3;
-                write(fd, "OVER| |D|");
-                write();
+                write(fd, "OVER|2|D|", 10);
+                write(other_player, "OVER|2|D|", 10);
                 //ow write invalid
-            } else if(strcmp(args[2], "R")) { 
+            } else if(strcmp(args[2], "R") && draw_suggested) { 
                 //need to check if the previous mesage was a DRAW|2|S|
                 //if so set status to -1
+                write(other_player, "DRAW|2|R|", 10);
                 status = -1;
-                write();
-                write();
+
+            } else { 
+                //this was an invalid message
+                write(fd, "INVL|17|INVALID DRAW REQ|", 26);
+                status = -1;
             }
-            */ 
         }
     }
     return status;
-    //free(args);
 }

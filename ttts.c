@@ -146,14 +146,12 @@ int main(int argc, char **argv)
     handle_t *hPtr = &h;
     message_t *mPtr = &m;
 
-    m.message = malloc(264);
-    h.buf = malloc(264);
-
     char *player1_name;
     char *player1_len;
     int player1_name_len;
 
-
+    int draw_suggested = 0;
+    int ask_again = 0;
 
     char *player2_name;
     char *player2_len;
@@ -165,7 +163,6 @@ int main(int argc, char **argv)
     while (active) {
         remote_host_len = sizeof(remote_host);
         //wait for two players to join the current session before starting the game
-        //FOR TESTING PURPOSES COMMENTING THIS OUT 
         while (player_num < 3) {
             if(player_num == 0) {
                 sock1 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
@@ -173,6 +170,15 @@ int main(int argc, char **argv)
                 h.fd = sock1;
                 //once the user is connected wait for the PLAY message from client which will determine what player1_name should be
                 err = read_message(hPtr, mPtr);
+
+                if(err == -1) { 
+                    write(sock1, m.message, strlen(m.message));
+                    close(sock1);
+                    player_num--;
+                }
+
+                printf("message received from sock1: %s\n", m.message);
+
                 parse_message(mPtr);
                 display_args(mPtr);
                 //need to check if the name is too long if it is then send INVL|16|NAME IS TOO LONG|
@@ -181,6 +187,7 @@ int main(int argc, char **argv)
                 if(player1_name_len > 255) { 
                     write(sock1, "INVL|14|NAME TOO LONG|", 22);
                     //disconnect from sock2
+                    close(sock1);
                     player_num--;
                 } else {
                     player1_name = m.args[2];
@@ -188,12 +195,19 @@ int main(int argc, char **argv)
                     //h1.sock = sock1;
                     write(sock1, "WAIT|0|", 8);
                 }
-            }
-            if(player_num == 1) {
+            } 
+            else if(player_num == 1) {
                 sock2 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
                 puts("player 2 connected");
                 h.fd = sock2;
                 err = read_message(hPtr, mPtr);
+
+                if(err == -1) { 
+                    write(sock1, m.message, strlen(m.message));
+                    close(sock1);
+                    player_num--;
+                }
+
                 parse_message(mPtr);
                 display_args(mPtr);
                 //need to check if the name is too long if it is then send INVL|16|NAME IS TOO LONG|
@@ -203,6 +217,7 @@ int main(int argc, char **argv)
                 if(player2_name_len > 255) { 
                     write(sock2, "INVL|14|NAME TOO LONG|", 22);
                     //disconnect from sock2
+                    close(sock2);
                     player_num--;
                 } else {
                     player2_name = m.args[2];
@@ -212,73 +227,84 @@ int main(int argc, char **argv)
                 }
             }
             //once both players have connected send BEGN to both players with their role and their opponent's name X move first
-            if(player_num == 2) { 
+            else if(player_num == 2) { 
+                //only for testing delete after
+                // r = 1;
                 if (r == 0) {
                     printf("Player 1 goes first\n");
-                    char str1_to_send[strlen(player2_name) + 9];
+                    char str_to_send[264];
                     //string representing the total length of the message that needs to be sent
                     //honestly this should just be programmed into the perform action method instead of being like this :(
+                    
                     char snum1[3];
-                    //itoa(player1_name_len + 2, snum, 10);
-                    //turn the length of the name into a string
                     sprintf(snum1, "%d", player2_name_len + 2);
                     
-                    strcat(str1_to_send, "BEGN|");
-                    strcat(str1_to_send, snum1);
-                    strcat(str1_to_send, "|");
-                    strcat(str1_to_send, "X|");
-                    strcat(str1_to_send, player2_name);
-                    strcat(str1_to_send, "|");
+                    strcat(str_to_send, "BEGN|");
+                    strcat(str_to_send, snum1);
+                    strcat(str_to_send, "|");
+                    strcat(str_to_send, "X|");
+                    strcat(str_to_send, player2_name);
+                    strcat(str_to_send, "|");
                     
-                    printf("str1_to_send: %s\n", str1_to_send);
-                    write(sock1, str1_to_send, strlen(str1_to_send));
+                    printf("str1_to_send: %s\n", str_to_send);
+                    write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                    printf("\n");
 
-                    char str2_to_send[strlen(player1_name) + 9];
+                    char str2_to_send[strlen(player1_name) + 12];
                     char snum2[3];
                     sprintf(snum2, "%d", player1_name_len + 2);
 
-                    strcat(str2_to_send, "BEGN|");
-                    strcat(str2_to_send, snum2);
-                    strcat(str2_to_send, "|");
-                    strcat(str2_to_send, "O|");
-                    strcat(str2_to_send, player1_name);
-                    strcat(str2_to_send, "|");
+                    strcat(str_to_send, "BEGN|");
+                    strcat(str_to_send, snum2);
+                    strcat(str_to_send, "|");
+                    strcat(str_to_send, "O|");
+                    strcat(str_to_send, player1_name);
+                    strcat(str_to_send, "|");
                     
-                    printf("str2_to_send: %s\n", str2_to_send);
-                    write(sock2, str2_to_send, strlen(str2_to_send));
+                    printf("str2_to_send: %s\n", str_to_send);
+                    write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                    printf("\n");
                 } else {
                     printf("Player 2 goes first\n");
-                    char str1_to_send[strlen(player1_name) + 9];
+                    char str_to_send[264];
                     //string representing the total length of the message that needs to be sent
                     //honestly this should just be programmed into the perform action method instead of being like this :(
-                    char snum1[3];
                     
+                    char snum1[3];
                     sprintf(snum1, "%d", player1_name_len + 2);
 
-                    strcat(str1_to_send, "BEGN|");
-                    strcat(str1_to_send, snum1);
-                    strcat(str1_to_send, "|");
-                    strcat(str1_to_send, "X|");
-                    strcat(str1_to_send, player2_name);
-                    strcat(str1_to_send, "|");
+                    strcat(str_to_send, "BEGN|");
+                    strcat(str_to_send, snum1);
+                    strcat(str_to_send, "|");
+                    strcat(str_to_send, "X|");
+                    strcat(str_to_send, player2_name);
+                    strcat(str_to_send, "|");
                     
-                    printf("str1_to_send: %s\n", str1_to_send);
-                    write(sock1, str1_to_send, strlen(str1_to_send));
+                    printf("str_to_send: %s\n", str_to_send);
+                    write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                    printf("\n");
 
-                    char str2_to_send[strlen(player2_name) + 9];
                     char snum2[3];
                     sprintf(snum2, "%d", player2_name_len + 2);
 
-                    strcat(str2_to_send, "BEGN|");
-                    strcat(str2_to_send, snum2);
-                    strcat(str2_to_send, "|");
-                    strcat(str2_to_send, "O|");
-                    strcat(str2_to_send, player1_name);
-                    strcat(str2_to_send, "|");
-                    
-                    printf("str2_to_send: %s\n", str2_to_send);
-                    write(sock2, str2_to_send, strlen(str2_to_send));
+                    strcpy(str_to_send, "BEGN|");
+                    strcat(str_to_send, snum2);
+                    strcat(str_to_send, "|");
+                    strcat(str_to_send, "O|");
+                    strcat(str_to_send, player1_name);
+                    strcat(str_to_send, "|");
+
+                    printf("str2_to_send: %s\n", str_to_send);
+                    write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                    printf("\n");
                 }
+                //actually I think we just need to free_args everytime not the message 
+                //message can just be a static block of memory sizeof(message) = 264 
+                //we just overwrite the data in the message everytime
+                //free args
+                free_args(mPtr);
+                //free message
+                free(m.message);
             }
             player_num++;
         }
@@ -288,13 +314,13 @@ int main(int argc, char **argv)
 
         //COMMENTING THIS OUT FOR TESTING
         //if a draw was proposed on the last message
-        if(!r) { 
+        if(!r && !ask_again) { 
             h.fd = sock1;
             other_player = sock2;
             curr_move = 'X';
             r = 1;
             printf("PLAYER 1 TURN\n");
-        } else if(r) { 
+        } else if(r && !ask_again) { 
             h.fd = sock2;
             other_player = sock1;
             curr_move = 'Y';
@@ -310,7 +336,9 @@ int main(int argc, char **argv)
         //didn't provide a message didn't have the specified number of bits
         if(!err || err == -1){
             printf("there was an ERROR!\n");
-            write(sock1, "INVL|12|BAD MESSAGE|", 20);
+            write(h.fd, m.message, strlen(m.message));
+            free(m.message);
+            free(h.buf);
             //write(sock2, "INVL|12|BAD MESSAGE|", 20);
             printf("closing connection\n");
             break;
@@ -319,6 +347,7 @@ int main(int argc, char **argv)
         //take discrete message from message and split it up into the different fields
         //the start of each field is defined by a '|' char
         parse_message(mPtr);
+        printf("DONE PARSING\n");
 
         //helper method to display the contents of the args list 
         //in the message struct
@@ -334,7 +363,18 @@ int main(int argc, char **argv)
         //perform_action should return the status of the game 
         //1 means game can continue 
         //0 means game should end
-        status = perform_action(m.args, board, h.fd, other_player);
+        status = perform_action(m.args, board, h.fd, other_player, draw_suggested);
+        printf("status: %d\n", status);
+        if(status == -2){
+            draw_suggested = 1; 
+        } else {
+            draw_suggested = 0;
+        }
+        if(status == -1) {
+            ask_again = 1; 
+        } else {
+            ask_again = 0;
+        }
         
         //free args
         free_args(mPtr);
@@ -364,9 +404,6 @@ int main(int argc, char **argv)
             break;
     }
 
-    //no need to fre this anymore since we are using struct to store the message
-    //free(message);
-    //free(m.message);
     puts("Shutting down");
     close(sock1);
     close(sock2);
