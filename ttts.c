@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <netdb.h>
+#include <pthread.h>
 #include <signal.h>
 #include <time.h>
 
