@@ -11,7 +11,7 @@
 
   In order to verify that each of these properties is met by our program we will run each of the following test cases: 
   
-  # Property 1
+  ### Property 1
   
   test1.) Send client that result in player X winning 
   
@@ -23,11 +23,11 @@
   
   test5.) Send a client message with too many "|" for the type of message being sent
   
-  # Property 2
+  ### Property 2
  
-  # Property 3 
+  ### Property 3 
   
-  # Property 4
+  ### Property 4
   
 ## How to run code
 
