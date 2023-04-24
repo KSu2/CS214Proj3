@@ -53,25 +53,24 @@ int checkWin(char* board){
         if(board[0]=='X')return 1; return 2;
     }else if(board[2]==board[4]&&board[4]==board[6]){
         if(board[0]=='X')return 1; return 2;
-    }else if(square[0] != '.' && square[1] != '.' && square[2] != '.' 
-            &&square[3] != '.' && square[4] != '.' && square[5] != '.' 
-            && square[6] != '.' && square[7] != '.' && square[8] != '.'){
+    }else if(board[0] != '.' && board[1] != '.' && board[2] != '.' 
+            &&board[3] != '.' && board[4] != '.' && board[5] != '.' 
+            && board[6] != '.' && board[7] != '.' && board[8] != '.'){
         return 0;
     }else{
         return -1;
     }
     
 }
-<<<<<<< HEAD
 
 //given row, col and grid check if the cell is free
 int valid_move(char* board, int row, int col, char player) {
-    int valid == 1;
+    int valid = 1;
     if(board[(row - 1) + (col - 1)] != '.') {
         valid = 0;
     }
     return valid;
-=======
+}
 /*
 prints out board in string format send to client
 */
@@ -84,5 +83,4 @@ char* showBoard(char* board){
     
     return strcat(show,"|");
     
->>>>>>> efe3aa00d4d356ad432cc7b649e30105f3f6c092
 }
