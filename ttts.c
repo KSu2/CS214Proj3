@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <netdb.h>
+#include <pthread.h>
 #include <signal.h>
 #include <time.h>
 
@@ -22,6 +23,35 @@
 
 //string representing the current state of the board
 char *board;
+// Struct to hold player data
+struct player {
+    int id;
+    int socket;
+    char* name; 
+}
+/*
+    Stores game data like: 
+    board
+    players' id
+    mutex (for protection)
+    cond (when player makes a move)
+*/
+
+struct game_data
+{
+   char *board;
+   int player1_id,player2_id;
+   pthread_mutex_t mutex;
+   pthread_cond_t cond;
+};
+
+struct queue
+{
+    int players[100];
+    int head;
+    int tail;
+};
+
 
 volatile int active = 1;
 
@@ -102,6 +132,35 @@ void reap() {
         pid = waitpid(-1, NULL, WNOHANG);
     } while(pid > 0);
 }
+// Function to add player ID to queue
+void enqueue(struct queue* q, int id) {
+    if (q->tail == 100) {
+        printf("Queue is full\n");
+    } else {
+        q->players[q->tail] = id;
+        q->tail++;
+    }
+}
+
+// Function to remove player ID from queue
+int dequeue(struct queue* q) {
+    if (q->head == q->tail) {
+        printf("Queue is empty\n");
+        return -1;
+    } else {
+        int id = q->players[q->head];
+        q->head++;
+        return id;
+    }
+}
+void game_thread(void* args){
+    struct game* g = (struct game*)arg;
+    
+    //Insert game code here from main() function
+
+    pthread_exit(NULL);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -119,6 +178,12 @@ int main(int argc, char **argv)
     //char* message;
     char** args;
     char curr_move;
+
+    struct queue* q = malloc(sizeof(struct queue));
+    q->head=0;
+    q->tail=0;
+    
+
     //if there's an argument use it for the port number 
     //otherwise default to using port 15000
     char *service = argc == 2 ? argv[1] : "15000";
@@ -156,6 +221,7 @@ int main(int argc, char **argv)
     char *player2_name;
     char *player2_len;
     int player2_name_len;
+    int player_id=1;
 
     int other_player;
     //should do this for every new game
@@ -163,6 +229,62 @@ int main(int argc, char **argv)
     while (active) {
         remote_host_len = sizeof(remote_host);
         //wait for two players to join the current session before starting the game
+        //FOR TESTING PURPOSES COMMENTING THIS OUT
+        /*
+        code for adding players to queue to wait for a second player then dequeue them 
+        to start a game thread after player connection
+    
+        player* p = malloc(sizeof(struct player));
+        p->id = player_id;
+        p->socket = client_socket 
+        enqueue(q,player_id);
+        player_id++;
+
+        // Check if there are enough players for a game
+        if (q->rear - q->front >= 2) {
+            // Dequeue two players to start a game
+            int player1_id = dequeue(q);
+            int player2_id = dequeue(q);
+
+            // Create game struct and initialize data
+            struct game* g = malloc(sizeof(struct game));
+            g->player1_id = player1_id;
+            g->player2_id = player2_id;
+            g->turn = 0;
+            g->winner = 0;
+            pthread_mutex_init(&g->mutex, NULL);
+            pthread_cond_init(&g->cond, NULL);
+
+            // Create game thread
+            pthread_t tid;
+            pthread_create(&tid, NULL, game_thread, g);
+        }        
+        
+        Next we need to add part of the code below to the method in game thread
+        
+        while game is still running{
+            pthread_mutex_lock(&g->mutex);
+            while (g->turn != 0) {
+                pthread_cond_wait(&g->cond, &g->mutex);
+            }
+            // Update game board
+        
+
+            // Signal other player
+            g->turn = 1;
+            pthread_cond_signal(&g->cond);
+            pthread_mutex_unlock(&g->mutex);
+        }
+
+        We need to wait for the game thread to exit so we use
+
+        pthread_join(tid, NULL);
+
+        */
+
+
+
+
         while (player_num < 3) {
             if(player_num == 0) {
                 sock1 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
