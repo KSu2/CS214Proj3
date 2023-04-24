@@ -8,6 +8,7 @@
   2. Our program should detect win, lose, and draw gamestates and end the games appropriately
   3. Our program should handle cases when either player sends a RSGN message appropriately
   4. Our program should be able to handle DRAW requests appropriately
+  5. Our program should be able to support concurrent games
 
   In order to verify that each of these properties is met by our program we will run each of the following test cases: 
   
