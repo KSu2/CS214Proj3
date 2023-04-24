@@ -4,10 +4,10 @@
   
   For our testing play we intent on testing the following properties of our program
   
-  1.) Our program should detect invalid messages and respond with the appropriate message with the INVL header
-  2.) Our program should detect win, lose, and draw gamestates and end the games appropriately
-  3.) Our program should handle cases when either player sends a RSGN message appropriately
-  4.) Our program should be able to handle DRAW requests appropriately
+  1. Our program should detect invalid messages and respond with the appropriate message with the INVL header
+  2. Our program should detect win, lose, and draw gamestates and end the games appropriately
+  3. Our program should handle cases when either player sends a RSGN message appropriately
+  4. Our program should be able to handle DRAW requests appropriately
 
   In order to verify that each of these properties is met by our program we will run each of the following test cases: 
   
