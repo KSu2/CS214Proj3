@@ -9,6 +9,7 @@
   3. Our program should handle cases when either player sends a RSGN message appropriately
   4. Our program should be able to handle DRAW requests appropriately
   5. Our program should be able to support concurrent games
+  6. Our program should maintain a list of player names and only allow players to join with unique names that aren't on the list
 
   In order to verify that each of these properties is met by our program we will run each of the following test cases: 
   
@@ -45,6 +46,16 @@
              
   test12.) Send client message suggesting a draw from player 2
              -> Have player 1 accept the draw
+  
+  
+  ### Property 5
+  
+  test13.)
+  
+  ### Property 6
+  
+  test14.)
+  
   
 ## How to run code
 
