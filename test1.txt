@@ -1,1 +1,4 @@
 PLAY|5|JAKE|
+MOVE|5|X|3,3|
+MOVE|5|X|3,2|
+MOVE|5|X|3,1|

@@ -1,5 +1,4 @@
 //application layer 
-//
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +55,7 @@ int read_message(handle_t *h, message_t *m)
     char msg_header[5];
     strncpy(msg_header, buf, 4);
     msg_header[4] = '\0';
-    printf("msg_header: %s\n", msg_header);
+    //printf("msg_header: %s\n", msg_header);
 
     if(strcmp(msg_header, "PLAY") == 0) {
         expected = 3;
@@ -78,9 +77,9 @@ int read_message(handle_t *h, message_t *m)
     i = 5;
     
     while(buf[i] != '|') {
-        printf("buf[i]: %c\n", buf[i]);
+        //printf("buf[i]: %c\n", buf[i]);
         int curr = buf[i] - '0';
-        printf("curr: %d\n", curr);
+        //printf("curr: %d\n", curr);
         //check if the digit is a valid one
         if(curr > 9 || curr < 0) { 
             return -1;
@@ -106,7 +105,7 @@ int read_message(handle_t *h, message_t *m)
     exp_len += bytes;
 
     do {
-        printf("read %d bytes: %s\n", bytes, buf);
+        //printf("read %d bytes: %s\n", bytes, buf);
         //return -1;
         //iterate over buffer to find if it has the right number of '|'
         
@@ -151,8 +150,8 @@ int read_message(handle_t *h, message_t *m)
     //printf("addl_bytes: %d\n", addl_bytes);
 
     printf("DONE READING MESSAGE!\n");
-    printf("i: %d\n", i);
-    printf("total_bytes: %d\n", total_bytes);
+    //printf("i: %d\n", i);
+    //printf("total_bytes: %d\n", total_bytes);
     //strncpy(message, buf, i);
     //strncpy(buffer, buf, size);
     strncpy(buffer, buf, BUFSIZE - 1);
@@ -183,7 +182,7 @@ void parse_message(message_t *m) {
     //build args list
     curr_string = malloc(sizeof(char) * size);
     while(message[i] != '\0') {
-        printf("char at message[%d]: %c\n", i, message[i]);
+        //printf("char at message[%d]: %c\n", i, message[i]);
         //if we are at the symbol '|' and it is not the first arg allocate a new char* pointer
         if(message[i] == '|') { 
             curr_string[curr_size] = '\0';
@@ -221,36 +220,32 @@ void display_args(message_t *m) {
     }
 }
 
-
 //given the msg_type and args perform the appropriate response
 //fd is the fd to write to
 //return value: 
 //-1: if failed for any eason
 //the position of the move if possible
 //0 ow
-void perform_action(char **args, char* board, int fd) {
+int perform_action(char **args, char* board, int fd, int other_player) {
     //TODO: fill in implementation 
-    char* str_to_send;
     //check if previous message was invalid message first 
+    int status = 1;
     if(strcmp(args[0], "INVL") == 0) {
         //write to client INVL
         printf("INVALID MESSAGE\n");
         free(args[0]);
-        str_to_send = "INVL|23|INVALID MESSAGE FORMAT|";
+        char *str_to_send = "INVL|23|INVALID MESSAGE FORMAT|";
         write(fd, str_to_send, strlen(str_to_send));
     } else if ((atoi(args[1]) > 255) || (atoi(args[1]) < 0)){
         //message length field should be between 0 - 255 
         //ow write the INVL message
         free(args[0]);
-        str_to_send = "INVL|13|LEN TOO LONG|";
+        char *str_to_send = "INVL|13|LEN TOO LONG|";
         write(fd, str_to_send, strlen(str_to_send));
     } else {
         printf("VALID MESSAGE\n");
         if(strcmp(args[0], "PLAY") == 0) {
             //do something
-            free(args[0]);
-            free(args[1]);
-            free(args[2]);
             write(fd, "WAIT|0|", 8);
         } else if(strcmp(args[0], "MOVE") == 0) {
             //do something
@@ -259,26 +254,74 @@ void perform_action(char **args, char* board, int fd) {
             //ow send INVALID|23|THAT SPACE IS OCCUPIED
             int x = args[3][0] - '0';
             int y = args[3][2] - '0';
+            printf("x: %d\n", x);
+            printf("y: %d\n", y);
+            printf("curr player: %c\n", args[2][0]);
+
+            //check if the proposed move is valid
+            //if it is valid it will make the proposed move
             int valid = valid_move(board, x, y, args[2][0]);
+            
+            char *str_to_send;
             if(valid) { 
                 //build message
-                str_to_send = "MOVD|16|";
-                strcat(str_to_send, args[2]);
-                strcat(str_to_send, "|");
-                strcat(str_to_send, args[3]);
-                strcat(str_to_send, "|");
+                char temp_string[27] = "MOVD|16|";
+                strcat(temp_string, args[2]);
+                strcat(temp_string, "|");
+                strcat(temp_string, args[3]);
+                strcat(temp_string, "|");
+                strcat(temp_string, board);
+                strcat(temp_string, "|");
+                str_to_send = temp_string;
+                status = checkWin(board);
+                write(other_player, str_to_send, strlen(str_to_send));
             } else if(!valid){
-                str_to_send = "INVALID|23|THAT SPACE IS OCCUPIED|";
+                //we should ask the same user for another move if this happens
+                str_to_send = "INVL|23|THAT SPACE IS OCCUPIED|";
+                status = -1;
             } else {
-                str_to_send = "INVALID|15|INVALID COORDS|";
+                //we should ask the same user for another move if this happens
+                str_to_send = "INVL|15|INVALID COORDS|";
+                status = -1;
             }
+            printf("str_to_send: %s\n", str_to_send);
             write(fd, str_to_send, strlen(str_to_send));
         } else if(strcmp(args[0], "RSGN") == 0) {
             //do something
             //send the 
+            char *str_to_send = "OVER|23|W|Player x has resigned|";
+            write(fd, str_to_send, strlen(str_to_send));
+            status = 3;
         } else if(strcmp(args[0], "DRAW") == 0) {
             //do something
+            //args[2] will either be a S or A
+            //if it is an S we should send DRAW|2|S| to the other player
+            //if it is an A we should end the game only if the previous message was an S
+            if(strcmp(args[2], "S") == 0) { 
+                //send DRAW|2|S| to other player
+                write(other_player, "DRAW|2|S|", 10);
+                status = -2;
+            } 
+            /**
+            else if(strcmp(args[2], "A")) {
+                //need to check if the previous mesage was a DRAW|2|S|
+                //if so set status to 3
+                char *str_to_send;
+                char temp_string[];
+                status = 3;
+                write(fd, "OVER| |D|");
+                write();
+                //ow write invalid
+            } else if(strcmp(args[2], "R")) { 
+                //need to check if the previous mesage was a DRAW|2|S|
+                //if so set status to -1
+                status = -1;
+                write();
+                write();
+            }
+            */ 
         }
     }
-    free(args);
+    return status;
+    //free(args);
 }

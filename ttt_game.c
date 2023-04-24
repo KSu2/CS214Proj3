@@ -37,21 +37,21 @@ return 0 if it is a draw
 int checkWin(char* board){
     //horizontal followed by vertical followed by diagonal checks
     //then checks if all spaces are filled up
-    if(board[0]==board[1]&&board[1]==board[2]){
+    if(board[0]==board[1]&&board[1]==board[2]&&board[0]!='.'&&board[1]!='.'&&board[2]!='.'){
         if(board[0]=='X')return 1; return 2;
-    }else if(board[3]==board[4]&&board[4]==board[5]){
+    }else if(board[3]==board[4]&&board[4]==board[5]&&board[3]!='.'&&board[4]!='.'&&board[5]!='.'){
         if(board[0]=='X')return 1; return 2;
-    }else if(board[6]==board[7]&&board[7]==board[8]){
+    }else if(board[6]==board[7]&&board[7]==board[8]&&board[6]!='.'&&board[7]!='.'&&board[8]!='.'){
         if(board[0]=='X')return 1; return 2;
-    }else if(board[0]==board[3]&&board[3]==board[6]){
+    }else if(board[0]==board[3]&&board[3]==board[6]&&board[0]!='.'&&board[3]!='.'&&board[6]!='.'){
         if(board[0]=='X')return 1; return 2;
-    }else if(board[1]==board[4]&&board[4]==board[7]){
+    }else if(board[1]==board[4]&&board[4]==board[7]&&board[1]!='.'&&board[4]!='.'&&board[7]!='.'){
         if(board[0]=='X')return 1; return 2;
-    }else if(board[2]==board[5]&&board[5]==board[8]){
+    }else if(board[2]==board[5]&&board[5]==board[8]&&board[2]!='.'&&board[5]!='.'&&board[8]!='.'){
         if(board[0]=='X')return 1; return 2;
-    }else if(board[0]==board[4]&&board[4]==board[8]){
+    }else if(board[0]==board[4]&&board[4]==board[8]&&board[0]!='.'&&board[4]!='.'&&board[8]!='.'){
         if(board[0]=='X')return 1; return 2;
-    }else if(board[2]==board[4]&&board[4]==board[6]){
+    }else if(board[2]==board[4]&&board[4]==board[6]&&board[2]!='.'&&board[4]!='.'&&board[6]!='.'){
         if(board[0]=='X')return 1; return 2;
     }else if(board[0] != '.' && board[1] != '.' && board[2] != '.' 
             &&board[3] != '.' && board[4] != '.' && board[5] != '.' 
@@ -59,23 +59,38 @@ int checkWin(char* board){
         return 0;
     }else{
         return -1;
-    }
-    
+    }    
 }
 
 //given row, col and grid check if the cell is free
 //coords should be a string of the form x,y
-//return 1 on success
-//return -1 or 0 on failure
+//return 1 if valid
+//return -1 on failure
+//return 0 if not valid
 int valid_move(char* board, int row, int col, char player) {
+    int pos;
+    int valid = 1;
     //check if the coords are valid
     if(!((row > 0 && row < 4) && (col > 0 && col < 4))) {
         return -1;
     }
-    int valid = 1;
-    if(board[(row - 1) + (col - 1)] != '.') {
-        valid = 0;
+    
+    if(row == 1) {
+        pos = row + col - 2;
+    } else if(row == 2) { 
+        pos = row + col;
+    } else { 
+        pos = row + col + 2;
     }
+
+    //printf("(row - 1) + (col - 1): %d\n", (row - 1)  + (col - 1));
+    //printf("board[%d]: %c\n", (row - 1) + (col - 1), board[(row - 1) + (col - 1)]);
+    if(board[pos] != '.') {
+        return 0;
+    }
+
+    //if we make it this far the move is valid and we should change the board accordingly
+    board[pos] = player;
     return valid;
 }
 /*
@@ -94,4 +109,11 @@ char* showBoard(char* board){
     */
     
     return show;
+}
+
+void init_board(char* board) { 
+    for(int i = 0; i < 9; i++) { 
+        board[i] = '.';
+    }
+    board[9] = '\0';
 }
