@@ -286,7 +286,7 @@ int main(int argc, char **argv)
 
 
 
-
+       // Need to add this code to game_thread and different between socket connect and running the game
         while (player_num < 3) {
             if(player_num == 0) {
                 sock1 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
