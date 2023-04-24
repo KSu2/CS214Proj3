@@ -24,13 +24,10 @@
   test5.) Send a client message with too many "|" for the type of message being sent
   
   # Property 2
-  
-  
+ 
   # Property 3 
   
   # Property 4
-  
-  
   
 ## How to run code
 
