@@ -24,10 +24,22 @@
   test5.) Send a client message with too many "|" for the type of message being sent
   
   ### Property 2
+  
+  test6.) Make valid moves from both players that ends in "X" winning 
+  test7.) Make valid moves from both players that ends in "O" winning
+  test8.) Make valid moves from both players that ends in a draw
  
   ### Property 3 
   
+  test9.) Send client message from player 1 resigning 
+  test10.) Send client message from player 2 resigning
+  
   ### Property 4
+  
+  test11.) Send client message suggesting a draw from player 1
+             -> Have player 2 reject the draw
+  test12.) Send client message suggesting a draw from player 2
+             -> Have player 1 accept the draw
   
 ## How to run code
 
