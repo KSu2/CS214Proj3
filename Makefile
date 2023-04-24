@@ -13,7 +13,7 @@ xmit: xmit.o
 xmit.o: xmit.c
 	$(CC) $(CCFLAGS) -c $^
 
-ttt: ttt.o message.o
+ttt: ttt.o
 	$(CC) $(CCFLAGS) $^ -o $@
 
 ttt.o: ttt.c

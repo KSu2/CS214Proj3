@@ -64,7 +64,14 @@ int checkWin(char* board){
 }
 
 //given row, col and grid check if the cell is free
+//coords should be a string of the form x,y
+//return 1 on success
+//return -1 or 0 on failure
 int valid_move(char* board, int row, int col, char player) {
+    //check if the coords are valid
+    if(!((row > 0 && row < 4) && (col > 0 && col < 4))) {
+        return -1;
+    }
     int valid = 1;
     if(board[(row - 1) + (col - 1)] != '.') {
         valid = 0;
@@ -75,12 +82,16 @@ int valid_move(char* board, int row, int col, char player) {
 prints out board in string format send to client
 */
 char* showBoard(char* board){
-    char* show = "|";
+    char* show;
+    strcat(show, "|");
+    strcat(show, board);
+    strcat(show, "|");
+    /**
     for (int i = 0; i < strlen(board); i++)
     {
        strcat(show,board[i]);
     }
+    */
     
-    return strcat(show,"|");
-    
+    return show;
 }
