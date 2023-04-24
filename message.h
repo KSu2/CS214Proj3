@@ -15,7 +15,7 @@ typedef struct handle handle_t;
 typedef struct message message_t;
 
 void parse_message(message_t *m);
-void perform_action(char **, char *, int);
+int perform_action(char **, char *, int, int);
 int read_message(handle_t *h, message_t *m);
 void display_args(message_t *m);
 void free_args(message_t *m);
