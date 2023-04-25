@@ -34,7 +34,8 @@
 int read_message(handle_t *h, message_t *m)
 {
     char buf[BUFSIZE + 1];
-
+    m->message = malloc(BUFSIZE);
+    
     //get the socket from the handler struct
     int sock = h->fd;
     int bytes, error, i;
@@ -44,31 +45,33 @@ int read_message(handle_t *h, message_t *m)
     //the expected number of fields for this specific message code
     int expected;
 
-    m->message = malloc(BUFSIZE);
-    h->buf = malloc(BUFSIZE);
-
     char* message = m->message; 
     char* buffer = h->buf;
     int active = 1;
-    
-    /**
+
+    printf("message: %s\n", message);
+    printf("buffer length: %d\n", h->length);
+    if(h->length > 0) { 
+        printf("buffer: %s\n", buffer);
+    }
     //check if there's anything in the buffer if there is copy it to the front of the buf
     if(h->length != 0) { 
-        strcpy(buffer, buf);
-        size += h->length;
+        strcpy(buf, buffer);
+        total_bytes += h->length;
+    } else { 
+        //read from buffer
+        bytes = read(sock, buf + total_bytes, BUFSIZE);
+        printf("read %d bytes: %s\n", bytes, buf);
     }
-    */
-
-    //read to buffer
-    bytes = read(sock, buf + total_bytes, BUFSIZE);
-    printf("read %d bytes: %s\n", bytes, buf);
-
+    
+    /**
     //the shortest message is HEAD|1|A| which is 9 bytes
     //if bytes < 9 then we can say that it is an invalid message
     if(bytes < 9) {
         strcpy(message, "INVL|21|MESSAGE TOO SHORT|");
         return -1;
     }
+    */
 
     //check the first four characters of the buf this should be the code
     char msg_header[5];
@@ -180,12 +183,18 @@ int read_message(handle_t *h, message_t *m)
     //printf("total_bytes: %d\n", total_bytes);
     //strncpy(message, buf, i);
     //strncpy(buffer, buf, size);
-    strncpy(buffer, buf, total_bytes - i);
+    strncpy(buffer, buf + i, total_bytes - i);
     message[i] = '\0';
     buffer[i] = '\0';
-    h->length = i;
+    h->length = total_bytes - i - 1;
     m->length = total_bytes;
     m->fields = expected;
+
+    printf("message received from sock: %s\n", m->message);
+    //printf("message length: %d\n", m.length);
+    printf("buffer received from sock: %s\n", h->buf);
+    //printf("buffer length: %d\n", h.length);
+
     //message[i + 1] = '\0';
     return 1;
 }
@@ -208,7 +217,7 @@ void parse_message(message_t *m) {
     //build args list
     curr_string = malloc(sizeof(char) * size);
     while(message[i] != '\0') {
-        printf("char at message[%d]: %c\n", i, message[i]);
+        //printf("char at message[%d]: %c\n", i, message[i]);
         //if we are at the symbol '|' and it is not the first arg allocate a new char* pointer
         if(message[i] == '|') { 
             curr_string[curr_size] = '\0';
@@ -252,10 +261,10 @@ void display_args(message_t *m) {
 //-1: if failed for any eason
 //the position of the move if possible
 //0 ow
-int perform_action(char **args, char* board, int fd, int other_player, int draw_suggested) {
+int perform_action(char **args, char* board, int fd, int other_player, int draw_suggested, char curr_move) {
     //TODO: fill in implementation 
     //check if previous message was invalid message first 
-    int status = 1;
+    int status = -1;
     if(strcmp(args[0], "INVL") == 0) {
         //write to client INVL
         printf("INVALID MESSAGE\n");
@@ -286,7 +295,9 @@ int perform_action(char **args, char* board, int fd, int other_player, int draw_
 
             //check if the proposed move is valid
             //if it is valid it will make the proposed move
-            int valid = valid_move(board, x, y, args[2][0]);
+            int valid = valid_move(board, x, y, args[2][0], curr_move);
+            //check if the player used the correct symbol 'X' or 'O'
+            //int valid2 = strcmp(args[2])
             
             printf("valid: %d\n", valid);
 
@@ -308,7 +319,11 @@ int perform_action(char **args, char* board, int fd, int other_player, int draw_
                 //we should ask the same user for another move if this happens
                 str_to_send = "INVL|23|THAT SPACE IS OCCUPIED|";
                 status = -1;
-            } else {
+            } else if(valid == -2) {
+                str_to_send = "INVL|18|WRONG MOVE SYMBOL|";
+                status = -1;
+            } 
+            else {
                 //we should ask the same user for another move if this happens
                 str_to_send = "INVL|15|INVALID COORDS|";
                 status = -1;
