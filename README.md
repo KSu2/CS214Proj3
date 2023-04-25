@@ -57,12 +57,13 @@
   
   ### Property 5
   
-  test13.)
+  test13.) 
   
   ### Property 6
   
-  test14.)
+  test14.) Connect to server with message "PLAY|2|A|" from client. After this connect to server again with message "PLAY|2|A|" from client. The server should send message "INVL|20|NAME ALREADY IN USE|".
   
+  For testing purposes we will write all messages that should be sent to clients to the clients to STDOUT_FILENO instead. We will also use additional print statements to debug, such as printing that status of the board and the message that was received from the sock.
   
 ## How to run code
 
@@ -87,7 +88,8 @@
   1.) test1.txt test winning case
   2.) test2.txt: test PLAY message with name that is too long
 
-## Proof of code working properly
+## Proof of code passing properties
   1.) After running test case 1 I observed the perform the corresponding moves requested appropriately eventually ending in a "OVER|5|X Wins|" message which was the expected result
   2.) After running test case 2 I observed the server sent a "INVL|14|NAME TOO LONG|" message which was expected
+  
 
