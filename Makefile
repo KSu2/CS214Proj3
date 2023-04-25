@@ -20,7 +20,7 @@ ttt.o: ttt.c
 	$(CC) $(CCFLAGS) -c $^
 
 ttts: ttts.o message.o ttt_game.o
-	$(CC) $(CCFLAGS) $^ -o $@
+	$(CC) $(CCFLAGS) -pthread $^ -o $@
 
 ttts.o: ttts.c
 	$(CC) $(CCFLAGS) -c $^

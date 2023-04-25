@@ -65,14 +65,19 @@ int checkWin(char* board){
 //given row, col and grid check if the cell is free
 //coords should be a string of the form x,y
 //return 1 if valid
-//return -1 on failure
+//return -1 on failure for invalid coords
+//return -2 on failure for invalid symbol
 //return 0 if not valid
-int valid_move(char* board, int row, int col, char player) {
+int valid_move(char* board, int row, int col, char player, char curr_move) {
     int pos;
     int valid = 1;
     //check if the coords are valid
     if((row < 1 || row > 3) || (col < 1 || row > 3)) {
         return -1;
+    }
+    //check if the player symbol curr_move is correct
+    if(player != curr_move) {
+        return -2;
     }
     
     if(row == 1) {
