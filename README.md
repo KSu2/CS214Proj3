@@ -5,11 +5,11 @@
   For our testing play we intent on testing the following properties of our program
   
   1. Our program should detect invalid messages and respond with the appropriate message with the INVL header
-    - if the message has the correct number of fields but not enough bytes it will send "INVL|17|NOT ENOUGH BYTES|"
-    - if the number of fields was incorrect but we have enough bytes it will send "INVL|18|NOT ENOUGH FIELDS|"
-    - if the message header not valid it will send "INVL|23|MESSAGE HEADER INVALID|"
-    - if the total message length is less than 9 bytes (the minimum size a message can be) it will send "INVL|21|MESSAGE TOO SHORT|"
-    - if the message length field is greater than 255 it will send "INVL|17|MESSAGE TOO LONG|"
+    * if the message has the correct number of fields but not enough bytes it will send "INVL|17|NOT ENOUGH BYTES|"
+    * if the number of fields was incorrect but we have enough bytes it will send "INVL|18|NOT ENOUGH FIELDS|"
+    * if the message header not valid it will send "INVL|23|MESSAGE HEADER INVALID|"
+    * if the total message length is less than 9 bytes (the minimum size a message can be) it will send "INVL|21|MESSAGE TOO SHORT|"
+    * if the message length field is greater than 255 it will send "INVL|17|MESSAGE TOO LONG|"
   2. Our program should detect win, lose, and draw gamestates and end the games appropriately
   3. Our program should handle cases when either player sends a RSGN message appropriately
   4. Our program should be able to handle DRAW requests appropriately
