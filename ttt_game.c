@@ -71,7 +71,7 @@ int valid_move(char* board, int row, int col, char player) {
     int pos;
     int valid = 1;
     //check if the coords are valid
-    if(!((row > 0 && row < 4) && (col > 0 && col < 4))) {
+    if((row < 1 || row > 3) || (col < 1 || row > 3)) {
         return -1;
     }
     

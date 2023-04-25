@@ -28,7 +28,7 @@ struct player {
     int id;
     int socket;
     char* name; 
-}
+};
 /*
     Stores game data like: 
     board
@@ -40,7 +40,7 @@ struct player {
 struct game_data
 {
    char *board;
-   int player1_id,player2_id;
+   int player1_id, player2_id;
    pthread_mutex_t mutex;
    pthread_cond_t cond;
 };
@@ -125,13 +125,6 @@ int open_listener(char *service, int queue_size)
     return sock;
 }
 
-void reap() {
-    int pid;
-    //repeatedly wait until all zombies are reaped
-    do {
-        pid = waitpid(-1, NULL, WNOHANG);
-    } while(pid > 0);
-}
 // Function to add player ID to queue
 void enqueue(struct queue* q, int id) {
     if (q->tail == 100) {
@@ -154,7 +147,7 @@ int dequeue(struct queue* q) {
     }
 }
 void game_thread(void* args){
-    struct game* g = (struct game*)arg;
+    struct game* g = (struct game*)args;
     
     //Insert game code here from main() function
 
@@ -282,9 +275,6 @@ int main(int argc, char **argv)
 
         */
 
-
-
-
         while (player_num < 3) {
             if(player_num == 0) {
                 sock1 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
@@ -297,22 +287,14 @@ int main(int argc, char **argv)
                     write(sock1, m.message, strlen(m.message));
                     close(sock1);
                     player_num--;
-                }
+                } else { 
+                    printf("message received from sock1: %s\n", m.message);
 
-                printf("message received from sock1: %s\n", m.message);
-
-                parse_message(mPtr);
-                display_args(mPtr);
-                //need to check if the name is too long if it is then send INVL|16|NAME IS TOO LONG|
-                player1_len = m.args[1];
-                player1_name_len = atoi(m.args[1]);
-                if(player1_name_len > 255) { 
-                    write(sock1, "INVL|14|NAME TOO LONG|", 22);
-                    //disconnect from sock2
-                    close(sock1);
-                    player_num--;
-                } else {
+                    parse_message(mPtr);
+                    display_args(mPtr);
                     player1_name = m.args[2];
+                    player1_len = m.args[1];
+                    player1_name_len = atoi(m.args[1]);
                     //printf("sock1: %d\n", sock1);
                     //h1.sock = sock1;
                     write(sock1, "WAIT|0|", 8);
@@ -328,21 +310,14 @@ int main(int argc, char **argv)
                     write(sock1, m.message, strlen(m.message));
                     close(sock1);
                     player_num--;
-                }
+                } else { 
+                    printf("message received from sock2: %s\n", m.message);
 
-                parse_message(mPtr);
-                display_args(mPtr);
-                //need to check if the name is too long if it is then send INVL|16|NAME IS TOO LONG|
-                player2_len = m.args[1];
-                player2_name_len = atoi(m.args[1]);
-
-                if(player2_name_len > 255) { 
-                    write(sock2, "INVL|14|NAME TOO LONG|", 22);
-                    //disconnect from sock2
-                    close(sock2);
-                    player_num--;
-                } else {
+                    parse_message(mPtr);
+                    display_args(mPtr);
                     player2_name = m.args[2];
+                    player2_len = m.args[1];
+                    player2_name_len = atoi(m.args[1]);
                     //printf("sock1: %d\n", sock1);
                     //h1.sock = sock1;
                     write(sock2, "WAIT|0|", 8);
@@ -376,7 +351,7 @@ int main(int argc, char **argv)
                     char snum2[3];
                     sprintf(snum2, "%d", player1_name_len + 2);
 
-                    strcat(str_to_send, "BEGN|");
+                    strcpy(str_to_send, "BEGN|");
                     strcat(str_to_send, snum2);
                     strcat(str_to_send, "|");
                     strcat(str_to_send, "O|");
@@ -399,7 +374,7 @@ int main(int argc, char **argv)
                     strcat(str_to_send, snum1);
                     strcat(str_to_send, "|");
                     strcat(str_to_send, "X|");
-                    strcat(str_to_send, player2_name);
+                    strcat(str_to_send, player1_name);
                     strcat(str_to_send, "|");
                     
                     printf("str_to_send: %s\n", str_to_send);
@@ -413,7 +388,7 @@ int main(int argc, char **argv)
                     strcat(str_to_send, snum2);
                     strcat(str_to_send, "|");
                     strcat(str_to_send, "O|");
-                    strcat(str_to_send, player1_name);
+                    strcat(str_to_send, player2_name);
                     strcat(str_to_send, "|");
 
                     printf("str2_to_send: %s\n", str_to_send);
@@ -475,28 +450,34 @@ int main(int argc, char **argv)
         //in the message struct
         display_args(mPtr);
 
-        printf("message received from sock: %s\n", m.message);
-        printf("message length: %d\n", m.length);
-        printf("buffer received from sock: %s\n", h.buf);
-        printf("buffer length: %d\n", h.length);
+        //printf("message received from sock: %s\n", m.message);
+        //printf("message length: %d\n", m.length);
+        //printf("buffer received from sock: %s\n", h.buf);
+        //printf("buffer length: %d\n", h.length);
         
-        printf("board: %s\n", board);
+        //printf("board: %s\n", board);
 
         //perform_action should return the status of the game 
         //1 means game can continue 
         //0 means game should end
+
         status = perform_action(m.args, board, h.fd, other_player, draw_suggested);
         printf("status: %d\n", status);
+        
         if(status == -2){
             draw_suggested = 1; 
         } else {
             draw_suggested = 0;
         }
+
         if(status == -1) {
             ask_again = 1; 
         } else {
             ask_again = 0;
         }
+
+        printf("draw_suggested: %d\n", draw_suggested);
+        printf("ask_again: %d\n", ask_again);
         
         //free args
         free_args(mPtr);
