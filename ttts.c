@@ -27,47 +27,33 @@ struct player {
     int socket;
     char* name; 
 };
-
 /*
     Stores game data like: 
     board
-    players' id
+    players
+    turn
     mutex (for protection)
     cond (when player makes a move)
 */
 
-struct player_list {
-    char **names;
-    int length;
-};
-
 struct game_data
 {
-    int fd1, fd2;
-    char* player1_name, player2_name; 
-
+   char *board;
+   int turn;
+   struct player player1, player2;
+   pthread_mutex_t mutex;
+   pthread_cond_t cond;
 };
-
-
-typedef struct player_list player_list_t;
-typedef struct game_data game_data_t;
 
 struct queue
 {
-    int players[100];
+    struct player* players[100];
     int head;
     int tail;
 };
 
 
 volatile int active = 1;
-
-//GLOBAL VARIABLES
-//string representing the current state of the board
-char *board;
-pthread_mutex_t mutex;
-player_list_t players;
-player_list_t *listPtr = &players;
 
 void handler(int signum)
 {
@@ -155,16 +141,31 @@ int dequeue(struct queue* q) {
         printf("Queue is empty\n");
         return -1;
     } else {
-        int id = q->players[q->head];
+        struct players* p = q->players[q->head];
         q->head++;
-        return id;
+        return p;
     }
 }
-void *game_thread(void* args){
-    game_data_t* g = (game_data_t*)args;
+void game_thread(void* args){
     
-    //Insert game code here from main() function
-    // Next we need to add part of the code below to the method in game thread
+    struct game_data* g = (struct game_data*)args;
+    
+    int r = rand() % 2;
+    int player_num = 0;
+    int sock1;
+    int sock2;
+    int r;
+    int status = -1;
+    int err;
+
+    char curr_move;
+
+    int other_player;
+    
+    //randomly generate a number to decide who goes first 
+    // r = 0 represents player 1 turn 
+    // r = 1 represents player 2 turn
+
 
     //handler for the current message being read
 
@@ -174,47 +175,105 @@ void *game_thread(void* args){
     handle_t *hPtr = &h;
     message_t *mPtr = &m;
 
-    char *player1_name;
-    char *player1_len;
-    int player1_name_len;
+
 
     int draw_suggested = 0;
     int ask_again = 0;
 
-    char *player2_name;
-    char *player2_len;
-    int player2_name_len;
-    int player_id=1;
 
-    char *board = malloc(sizeof(char) * 10);
-    init_board(board);
+    //Insert game code here from main() function
 
-    int other_player;
+            //send to game thread
+            if (r == 0) {
+                printf("Player 1 goes first\n");
+                char str_to_send[264];
+                //string representing the total length of the message that needs to be sent
+                //honestly this should just be programmed into the perform action method instead of being like this :(
+                
+                char snum1[3];
+                sprintf(snum1, "%d", strlen(g->player2->name) + 2);
+                
+                strcat(str_to_send, "BEGN|");
+                strcat(str_to_send, snum1);
+                strcat(str_to_send, "|");
+                strcat(str_to_send, "X|");
+                strcat(str_to_send, g->player2->name);
+                strcat(str_to_send, "|");
+                
+                printf("str1_to_send: %s\n", str_to_send);
+                write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                printf("\n");
 
-    //variable controlling whose turn it currently is
-    int r = 0;
-    int sock1 = g->fd1;
-    int sock2 = g->fd2;
-    char curr_move;
-    int err;
-    int status;
+                char str2_to_send[strlen(g->player1->name) + 12];
+                char snum2[3];
+                sprintf(snum2, "%d", strlen(g->player1->name) + 2);
 
-    while (active) {
-        //COMMENTING THIS OUT FOR TESTING
-        //if a draw was proposed on the last message
-        if(!r && !ask_again) { 
-            h.fd = sock1;
-            other_player = sock2;
-            curr_move = 'X';
-            r = 1;
-            printf("PLAYER 1 TURN\n");
-        } else if(r && !ask_again) { 
-            h.fd = sock2;
-            other_player = sock1;
-            curr_move = 'Y';
-            r = 0;
-            printf("PLAYER 2 TURN\n");
-        }
+                strcpy(str_to_send, "BEGN|");
+                strcat(str_to_send, snum2);
+                strcat(str_to_send, "|");
+                strcat(str_to_send, "O|");
+                strcat(str_to_send, g->player1->name);
+                strcat(str_to_send, "|");
+                
+                printf("str2_to_send: %s\n", str_to_send);
+                write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                printf("\n");
+            } else {
+                printf("Player 2 goes first\n");
+                char str_to_send[264];
+                //string representing the total length of the message that needs to be sent
+                //honestly this should just be programmed into the perform action method instead of being like this :(
+                
+                char snum1[3];
+                sprintf(snum1, "%d", strlen(g->player1->name) + 2);
+
+                strcat(str_to_send, "BEGN|");
+                strcat(str_to_send, snum1);
+                strcat(str_to_send, "|");
+                strcat(str_to_send, "X|");
+                strcat(str_to_send, g->player1->name);
+                strcat(str_to_send, "|");
+                
+                printf("str_to_send: %s\n", str_to_send);
+                write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                printf("\n");
+
+                char snum2[3];
+                sprintf(snum2, "%d", strlen(g->player2->name) + 2);
+
+                strcpy(str_to_send, "BEGN|");
+                strcat(str_to_send, snum2);
+                strcat(str_to_send, "|");
+                strcat(str_to_send, "O|");
+                strcat(str_to_send, g->player2->name);
+                strcat(str_to_send, "|");
+
+                printf("str2_to_send: %s\n", str_to_send);
+                write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                printf("\n");
+            }
+
+
+    
+        while(status == -1){
+            pthread_mutex_lock(&g->mutex);
+            while (g->turn != 0) {
+                pthread_cond_wait(&g->cond, &g->mutex);
+            }
+            // Update game board
+            if(!r && !ask_again) { 
+                h.fd = sock1;
+                other_player = sock2;
+                curr_move = 'X';
+                r = 1;
+                printf("PLAYER 1 TURN\n");
+            } else if(r && !ask_again) { 
+                h.fd = sock2;
+                other_player = sock1;
+                curr_move = 'Y';
+                r = 0;
+                printf("PLAYER 2 TURN\n");
+            }
 
         err = read_message(hPtr, mPtr);
 
@@ -279,89 +338,34 @@ void *game_thread(void* args){
         if((status == 0) || (status == 1) || (status == 2) || (status == 3)){
             active = 0;
         }
-    }
-    switch (status)
-    {
-        case 0:
-            puts("Draw");
-            break;
-        case 1:
-            puts("X wins");
-            break;
-        case 2:
-            puts("O wins");
-            break;
-        case 3:
-            puts("Someone resigned");
-            
-        default:
-            break;
-    }
-    /**
-    
-    CODE TO REMOVE THE PLAYERS FROM THE LIST OF PLAYERS AS WELL AS FREEING RESOURCES
+            // Signal other player
+            g->turn = 1;
+            pthread_cond_signal(&g->cond);
+            pthread_mutex_unlock(&g->mutex);
+        }
+        switch (status){
+            case 0:
+                puts("Draw");
+                break;
+            case 1:
+                puts("X wins");
+                break;
+            case 2:
+                puts("O wins");
+                break;
+            case 3:
+                puts("Someone resigned");
+                
+            default:
+                break;
+        }
 
-    pthread_mutex_lock(&mutex); 
-
-    remove_player(listPtr, name1);
-    remove_player(listPtr, name2);
-    close(fd1);
-    close(fd2);
-    free();
-    free();
-    listPtr->length = list->length - 2;
-
-
-    pthread_mutex_unlock(&mutex);
-
-    */
-
-    printf("Game Over\n");
-    close(sock1);
-    close(sock2);
-    free(board);
-
-    //return EXIT_SUCCESS;
     pthread_exit(NULL);
 }
 
-//check if names is in name
-int in_names(player_list_t *list, char *name) { 
-    if(list->length == 0) { 
-        printf("list is empty");
-        return 0;
-    } else {
-        for(int i = 0; i < list->length; i++) { 
-            if(strcmp(list->names[i], name) == 0) { 
-                return 1;
-            }
-        }
-        return 0;
-    }
-}
-
-void add_player(player_list_t *list, char *name) {
-    char *str = malloc(strlen(name)*sizeof(char));
-    list->names[list->length] = str;
-    list->length++;
-    // return 0;
-}
-
-//NEED TO FINISH
-void remove_player(player_list_t *list, char *name) { 
-    //iterate through players list until we reach a name == name
-    for(int i = 0; i < list->length; i++) { 
-        //this is a match
-        if(strcmp(list->names[i], name) == 0) {
-            //free(list->names[i]);
-            strcpy(list->names[i], "");
-        }
-    }
-}
 
 int main(int argc, char **argv)
 {
-
     signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
 
@@ -377,15 +381,15 @@ int main(int argc, char **argv)
     char** args;
     char curr_move;
 
-    /**
     struct queue* q = malloc(sizeof(struct queue));
     q->head=0;
     q->tail=0;
-    */
+    
 
     //if there's an argument use it for the port number 
     //otherwise default to using port 15000
     char *service = argc == 2 ? argv[1] : "15000";
+    board = malloc(sizeof(char) * 10);
 
 	install_handlers();
 	
@@ -395,6 +399,7 @@ int main(int argc, char **argv)
     
     puts("Listening for incoming connections");
 
+    
     //randomly generate a number to decide who goes first 
     // r = 0 represents player 1 turn 
     // r = 1 represents player 2 turn
@@ -418,209 +423,84 @@ int main(int argc, char **argv)
     char *player2_name;
     char *player2_len;
     int player2_name_len;
+    
     int player_id=1;
 
-    int other_player;
 
-    //initialize mutex
-    pthread_mutex_init(&(mutex), NULL);
-
-    /**
-    //initialize condition
-    pthread_cond_init(&(g->cond), NULL);
-    */
-
-    //create list to store all threads
-    //pthread_t *threads = malloc(sizeof(pthread_t) * 2);
-    //int curr_threads = 0;
-
-    //list of names in the game currently
-    players.names = malloc(sizeof(char*) * 2);
-    players.length = 0;
-
-    while (1) {
+    //should do this for every new game
+    //need to implement ds to track names so that player cant use same name
+    init_board(board);
+    while (active) {
         remote_host_len = sizeof(remote_host);
-        if(players.length <= 252) { 
-            //array storing the fds of the two players 
-            //sock_fds[0] - Player going first (X)
-            //sock_fds[1] - Player going second (O)
-            game_data_t *g = malloc(sizeof(game_data_t));
+    
+        //create a socket for player
 
-            //wait for at least two players to successfully connect to the server and send a valid |PLAY| message
-            //needs to have length < 255
-            //and name needs to not be in the current players list
-            while (player_num < 3) {
-                if(player_num == 0) {
-                    sock1 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
-                    puts("player 1 connected");
-                    h.fd = sock1;
-                    //once the user is connected wait for the PLAY message from client which will determine what player1_name should be
-                    err = read_message(hPtr, mPtr);
+        sock1 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
+        puts("player 1 connected");
+        h.fd = sock1;
+        //once the user is connected wait for the PLAY message from client which will determine what player1_name should be
+        err = read_message(hPtr, mPtr);
 
-                    if(err == -1) { 
-                        write(sock1, m.message, strlen(m.message));
-                        close(sock1);
-                        player_num--;
-                    } else { 
-                        printf("message received from sock1: %s\n", m.message);
+        if(err == -1) { 
+            write(sock1, m.message, strlen(m.message));
+            close(sock1);
+            player_num--;
+        } else { 
+            printf("message received from sock1: %s\n", m.message);
 
-                        parse_message(mPtr);
-                        display_args(mPtr);
-                        player1_name = m.args[2];
-
-                        //check if name is in existing names list
-                        if(in_names(listPtr, player1_name)) {
-                            write(sock1, "INVL|20|NAME ALREADY IN USE|", 28);
-
-                        } else { 
-                            player1_len = m.args[1];
-                            player1_name_len = atoi(m.args[1]);
-
-                            //add this player to the players list
-                            add_player(listPtr, player1_name);
-
-                            write(sock1, "WAIT|0|", 8);
-                        }
-                    }
-                } 
-                else if(player_num == 1) {
-                    sock2 = accept(listener, (struct sockaddr *)&remote_host, &remote_host_len);
-                    puts("player 2 connected");
-                    h.fd = sock2;
-                    err = read_message(hPtr, mPtr);
-
-                    if(err == -1) { 
-                        write(sock1, m.message, strlen(m.message));
-                        close(sock1);
-                        player_num--;
-                    } else { 
-                        printf("message received from sock2: %s\n", m.message);
-
-                        parse_message(mPtr);
-                        display_args(mPtr);
-                        player2_name = m.args[2];
-
-                        //check if name is in existing names list
-                        if(in_names(listPtr, player2_name)) {
-                            write(sock2, "INVL|20|NAME ALREADY IN USE|", 28);
-
-                        } else { 
-                            player2_len = m.args[1];
-                            player2_name_len = atoi(m.args[1]);
-
-                            //add this player to the players list
-                            add_player(listPtr, player2_name);
-
-                            write(sock1, "WAIT|0|", 8);
-                        }
-                    }
-                }
-                //once both players have connected send BEGN to both players with their role and their opponent's name X move first
-                else if(player_num == 2) { 
-                    //only for testing delete after
-                    // r = 1;
-                    if (r == 0) {
-                        printf("Player 1 goes first\n");
-                        char str_to_send[264];
-                        //string representing the total length of the message that needs to be sent
-                        //honestly this should just be programmed into the perform action method instead of being like this :(
-                        
-                        char snum1[3];
-                        sprintf(snum1, "%d", player2_name_len + 2);
-                        
-                        strcat(str_to_send, "BEGN|");
-                        strcat(str_to_send, snum1);
-                        strcat(str_to_send, "|");
-                        strcat(str_to_send, "X|");
-                        strcat(str_to_send, player2_name);
-                        strcat(str_to_send, "|");
-                        
-                        printf("str1_to_send: %s\n", str_to_send);
-                        write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
-                        printf("\n");
-
-                        char str2_to_send[strlen(player1_name) + 12];
-                        char snum2[3];
-                        sprintf(snum2, "%d", player1_name_len + 2);
-
-                        strcpy(str_to_send, "BEGN|");
-                        strcat(str_to_send, snum2);
-                        strcat(str_to_send, "|");
-                        strcat(str_to_send, "O|");
-                        strcat(str_to_send, player1_name);
-                        strcat(str_to_send, "|");
-                        
-                        printf("str2_to_send: %s\n", str_to_send);
-                        write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
-                        printf("\n");
-
-                        g->fd1 = sock1;
-                        g->fd2 = sock2;
-                    } else {
-                        printf("Player 2 goes first\n");
-                        char str_to_send[264];
-                        //string representing the total length of the message that needs to be sent
-                        //honestly this should just be programmed into the perform action method instead of being like this :(
-                        
-                        char snum1[3];
-                        sprintf(snum1, "%d", player1_name_len + 2);
-
-                        strcat(str_to_send, "BEGN|");
-                        strcat(str_to_send, snum1);
-                        strcat(str_to_send, "|");
-                        strcat(str_to_send, "X|");
-                        strcat(str_to_send, player1_name);
-                        strcat(str_to_send, "|");
-                        
-                        printf("str_to_send: %s\n", str_to_send);
-                        write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
-                        printf("\n");
-
-                        char snum2[3];
-                        sprintf(snum2, "%d", player2_name_len + 2);
-
-                        strcpy(str_to_send, "BEGN|");
-                        strcat(str_to_send, snum2);
-                        strcat(str_to_send, "|");
-                        strcat(str_to_send, "O|");
-                        strcat(str_to_send, player2_name);
-                        strcat(str_to_send, "|");
-
-                        printf("str2_to_send: %s\n", str_to_send);
-                        write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
-                        printf("\n");
-                    }
-                    //actually I think we just need to free_args everytime not the message 
-                    //message can just be a static block of memory sizeof(message) = 264 
-                    //we just overwrite the data in the message everytime
-                    //free args
-                    free_args(mPtr);
-                    //free message
-                    free(m.message);
-
-                    g->fd1 = sock2;
-                    g->fd2 = sock1;
-                }
-                player_num++;
-            }
-
-            pthread_t th;
-            //third argument is args to pass to the game_thread subroutine
-            //this should be a struct with the names and sock fds of the players
-            int result = pthread_create(&th, NULL, game_thread, (void *)args);
-            if(result){
-                printf("Thread creation failed with err no: %d\n", result);
-                exit(EXIT_FAILURE);
-            }
-            
-            //DEBUG statement
-            printf("NEW GAME HAS STARTED!\n");
+            parse_message(mPtr);
+            display_args(mPtr);
+            player1_name = m.args[2];
+            player1_len = m.args[1];
+            player1_name_len = atoi(m.args[1]);
+            //printf("sock1: %d\n", sock1);
+            //h1.sock = sock1;
+            write(sock1, "WAIT|0|", 8);
+            struct player *p = malloc(sizeof(struct player));
+            p->id = player_id;
+            p->socket = sock1; 
+            enqueue(q,p);
+            player_id++;
         }
+
+        // Check if there are enough players for a game
+        if (q->tail - q->head >= 2) {
+            // Dequeue two players to start a game
+            struct player *player1 = dequeue(q);
+            struct player *player2 = dequeue(q);
+
+            // Create game struct and initialize data
+            struct game_data* g = malloc(sizeof(struct game_data));
+            g->player1 = player1;
+            g->player2 = player2;
+            pthread_mutex_init(&g->mutex, NULL);
+            pthread_cond_init(&g->cond, NULL);
+
+            // Create game thread
+            pthread_t tid;
+            pthread_create(&tid, NULL, game_thread, g);
+
+            pthread_join(tid, NULL);
+            free_args(mPtr);
+            //free message
+            free(m.message);
+        }        
+        
+
+
+        //close listener stop accepting incoming connections
+        //close(listener);
+
+        //COMMENTING THIS OUT FOR TESTING
+        //if a draw was proposed on the last message
+
     }
 
+
     puts("Shutting down");
+    close(sock1);
+    close(sock2);
     close(listener);
-    pthread_mutex_destroy(&mutex);
 
     return EXIT_SUCCESS;
 }
