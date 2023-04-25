@@ -49,15 +49,15 @@
   ### Property 4
   
   test11.) Send client message suggesting a draw from player 1
-             -> Have player 2 reject the draw
+             -> Have player 2 reject the draw. Afterwards, the game should continue with player1 having the next move
              
   test12.) Send client message suggesting a draw from player 2
-             -> Have player 1 accept the draw
+             -> Have player 1 accept the draw. Afterwards, the game should end with the end status being a Draw.
   
   
   ### Property 5
   
-  test13.) 
+  test13.) Connect to server with two clients three times. This should result in the server thread printing the message "NEW GAME STARTED" times.
   
   ### Property 6
   
@@ -91,5 +91,16 @@
 ## Proof of code passing properties
   1. After running test case 1 I observed the perform the corresponding moves requested appropriately eventually ending in a "OVER|5|X Wins|" message which was the expected result
   2. After running test case 2 I observed the server sent a "INVL|14|NAME TOO LONG|" message which was expected
-  
+  3. After running test case 3 I observed the server sent a 
+  4. 
+  5. 
+  6. 
+  7. 
+  8. 
+  9. 
+  10. 
+  11. 
+  12. 
+  13. 
+  14. 
 
