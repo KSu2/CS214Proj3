@@ -103,8 +103,22 @@ int open_listener(char *service, int queue_size)
 void *game_thread(void* args){
     game_data_t* g = (game_data_t*)args;
     
-    //Insert game code here from main() function
-    // Next we need to add part of the code below to the method in game thread
+    int r = rand() % 2;
+    int player_num = 0;
+    int sock1;
+    int sock2;
+    int r;
+    int status = -1;
+    int err;
+
+    char curr_move;
+
+    int other_player;
+    
+    //randomly generate a number to decide who goes first 
+    // r = 0 represents player 1 turn 
+    // r = 1 represents player 2 turn
+
 
     //handler for the current message being read
 
@@ -276,7 +290,6 @@ int in_names(player_list_t *list, char *name) {
                 return 1;
             }
         }
-        return 0;
     }
 }
 
@@ -322,7 +335,6 @@ void show_list(player_list_t *list) {
 
 int main(int argc, char **argv)
 {
-
     signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
 
@@ -336,17 +348,12 @@ int main(int argc, char **argv)
     int err;
     //char* message;
     char** args;
-    char curr_move;
-
-    /**
-    struct queue* q = malloc(sizeof(struct queue));
-    q->head=0;
-    q->tail=0;
-    */
+    char curr_move; 
 
     //if there's an argument use it for the port number 
     //otherwise default to using port 15000
     char *service = argc == 2 ? argv[1] : "15000";
+    board = malloc(sizeof(char) * 10);
 
 	install_handlers();
 	
@@ -376,26 +383,7 @@ int main(int argc, char **argv)
 
     char *player2_name;
     char *player2_len;
-    int player2_name_len;
-    int player_id=1;
-
-    int other_player;
-
-    //initialize mutex
-    pthread_mutex_init(&(mutex), NULL);
-
-    /**
-    //initialize condition
-    pthread_cond_init(&(g->cond), NULL);
-    */
-
-    //create list to store all threads
-    //pthread_t *threads = malloc(sizeof(pthread_t) * 2);
-    //int curr_threads = 0;
-
-    //list of names in the game currently
-    players.names = malloc(sizeof(char*) * 2);
-    players.length = 0;
+    int player2_name_len;    
 
     while (1) {
         remote_host_len = sizeof(remote_host);
@@ -595,9 +583,11 @@ int main(int argc, char **argv)
         }
     }
 
+
     puts("Shutting down");
+    close(sock1);
+    close(sock2);
     close(listener);
-    pthread_mutex_destroy(&mutex);
 
     return EXIT_SUCCESS;
 }
