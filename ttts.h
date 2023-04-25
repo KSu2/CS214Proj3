@@ -1,6 +1,7 @@
 struct player_list {
     char **names;
     int length;
+    int max_size;
 };
 
 struct game_data

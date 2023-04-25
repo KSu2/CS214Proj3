@@ -30,13 +30,11 @@ pthread_mutex_t mutex;
 player_list_t players;
 player_list_t *listPtr = &players;
 
-void handler(int signum)
-{
+void handler(int signum) {
     active = 0;
 }
 
-void install_handlers(void)
-{
+void install_handlers(void) {
     struct sigaction act;
     act.sa_handler = handler;
     act.sa_flags = 0;
@@ -46,8 +44,7 @@ void install_handlers(void)
     sigaction(SIGTERM, &act, NULL);
 }
 
-int open_listener(char *service, int queue_size)
-{
+int open_listener(char *service, int queue_size) {
     struct addrinfo hint, *info_list, *info;
     int error, sock;
 
@@ -100,33 +97,37 @@ int open_listener(char *service, int queue_size)
     return sock;
 }
 
-void *game_thread(void* args){
+void *game_thread(void* args) {
     game_data_t* g = (game_data_t*)args;
     
-    int r = rand() % 2;
-    int player_num = 0;
-    int sock1;
-    int sock2;
-    int r;
+    //variable controlling whose turn it currently is
+    int r = 0;
+    int sock1 = g->fd1;
+    int sock2 = g->fd2;
+    char curr_move;
+
     int status = -1;
     int err;
 
-    char curr_move;
-
     int other_player;
-    
-    //randomly generate a number to decide who goes first 
-    // r = 0 represents player 1 turn 
-    // r = 1 represents player 2 turn
-
-
-    //handler for the current message being read
 
     //initialize structs
-    handle_t h;
+    //represent the current handler
     message_t m;
-    handle_t *hPtr = &h;
+    //this should switch between h1 and h2 depending on whose turn it is
+    handle_t *hPtr;
     message_t *mPtr = &m;
+
+    //handler for player 1
+    handle_t h1;
+    h1.fd = sock1;
+    h1.buf = malloc(264);
+    h1.length = 0;
+    //handler for player 2
+    handle_t h2;
+    h2.fd = sock2;
+    h2.buf = malloc(264);
+    h2.length = 0;
 
     int draw_suggested = 0;
     int ask_again = 0;
@@ -137,31 +138,21 @@ void *game_thread(void* args){
     char *board = malloc(sizeof(char) * 10);
     init_board(board);
 
-    int other_player;
-
-    //variable controlling whose turn it currently is
-    int r = 0;
-    int sock1 = g->fd1;
-    int sock2 = g->fd2;
-    char curr_move;
-    int err;
-    int status;
-
     active = 1;
 
     while (active) {
         //COMMENTING THIS OUT FOR TESTING
         //if a draw was proposed on the last message
         if(!r && !ask_again) { 
-            h.fd = sock1;
+            hPtr = &h1;
             other_player = sock2;
             curr_move = 'X';
             r = 1;
             //printf("PLAYER 1 TURN\n");
         } else if(r && !ask_again) { 
-            h.fd = sock2;
+            hPtr = &h2;
             other_player = sock1;
-            curr_move = 'Y';
+            curr_move = 'O';
             r = 0;
             //printf("PLAYER 2 TURN\n");
         }
@@ -174,9 +165,8 @@ void *game_thread(void* args){
         //didn't provide a message didn't have the specified number of bits
         if(!err || err == -1){
             //printf("there was an ERROR!\n");
-            write(h.fd, m.message, strlen(m.message));
+            write(hPtr->fd, m.message, strlen(m.message));
             free(m.message);
-            free(h.buf);
             //write(sock2, "INVL|12|BAD MESSAGE|", 20);
             //printf("closing connection\n");
             break;
@@ -189,11 +179,11 @@ void *game_thread(void* args){
 
         //helper method to display the contents of the args list 
         //in the message struct
-        display_args(mPtr);
+        //display_args(mPtr);
 
-        //printf("message received from sock: %s\n", m.message);
+        printf("message received from sock: %s\n", m.message);
         //printf("message length: %d\n", m.length);
-        //printf("buffer received from sock: %s\n", h.buf);
+        printf("buffer received from sock: %s\n", hPtr->buf);
         //printf("buffer length: %d\n", h.length);
         
         //printf("board: %s\n", board);
@@ -202,7 +192,7 @@ void *game_thread(void* args){
         //1 means game can continue 
         //0 means game should end
 
-        status = perform_action(m.args, board, h.fd, other_player, draw_suggested);
+        status = perform_action(m.args, board, hPtr->fd, other_player, draw_suggested, curr_move);
         //printf("status: %d\n", status);
         
         if(status == -2){
@@ -224,8 +214,17 @@ void *game_thread(void* args){
         free_args(mPtr);
         //free message
         free(m.message);
-        //status = checkWin(grid);
+
+        status = checkWin(board);
         //check if the game is over
+
+        //STATUS
+        //
+        //-2 - DRAW WAS SUGGESTED
+        //-1 - Game continues
+        //0 - DRAW 
+        //1 - PLAYER 1 wins 
+        //2 - PLAYER 2 wins
         if((status == 0) || (status == 1) || (status == 2) || (status == 3)){
             active = 0;
         }
@@ -256,16 +255,20 @@ void *game_thread(void* args){
     pthread_mutex_lock(&mutex); 
 
     //DEBUG
-    printf("REMOVING player1 : %s\n", player1_name);
+    //printf("REMOVING player1 : %s\n", player1_name);
 
     remove_player(listPtr, player1_name);
     free(player1_name);
 
     //DEBUG
-    printf("REMOVING player2 : %s\n", player2_name);
+    //printf("REMOVING player2 : %s\n", player2_name);
 
     remove_player(listPtr, player2_name);
     free(player2_name);
+
+    //free buffers
+    free(h1.buf);
+    free(h2.buf);
     close(sock1);
     close(sock2);
 
@@ -281,21 +284,29 @@ void *game_thread(void* args){
 //check if names is in name
 int in_names(player_list_t *list, char *name) { 
     if(list->length == 0) { 
-        printf("players list is empty\n");
+        //printf("players list is empty\n");
         return 0;
     } else {
         for(int i = 0; i < list->length; i++) { 
-            printf("list->names[%d]: %s\n", i, list->names[i]);
+            //printf("list->names[%d]: %s\n", i, list->names[i]);
+            //printf("name: %s\n", name);
             if(strcmp(list->names[i], name) == 0) { 
                 return 1;
             }
         }
     }
+    return 0;
 }
 
 void add_player(player_list_t *list, char *name) {
     char *str = malloc(strlen(name)*sizeof(char));
     strcpy(str, name);
+
+    //check if the capacity of the list can fit adding another name
+    if(list->max_size < list->length + 1) { 
+        list->max_size*=2;
+        list->names = realloc(list->names, list->max_size);
+    }
     list->names[list->length] = str;
     list->length++;
     // return 0;
@@ -304,14 +315,14 @@ void add_player(player_list_t *list, char *name) {
 //NEED TO FINISH
 void remove_player(player_list_t *list, char *name) { 
     //DEBUG
-    printf("list length before: %d\n", list->length);
+    //printf("list length before: %d\n", list->length);
 
     //iterate through players list until we reach a name == name
     int pos = 0;
     for(int i = 0; i < list->length; i++) { 
         //this is a match
         if(strcmp(list->names[i], name) == 0) {
-            printf("found: %s\n", list->names[i]);
+            //printf("found: %s\n", list->names[i]);
             free(list->names[i]);
             pos = i;
         }
@@ -324,7 +335,7 @@ void remove_player(player_list_t *list, char *name) {
 
     list->length--;
     //DEBUG
-    printf("list length after: %d\n", list->length);
+    //printf("list length after: %d\n", list->length);
 }
 
 void show_list(player_list_t *list) { 
@@ -333,8 +344,7 @@ void show_list(player_list_t *list) {
     }
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     signal(SIGPIPE, SIG_IGN);
     srand(time(NULL));
 
@@ -369,6 +379,9 @@ int main(int argc, char **argv)
     handle_t *hPtr = &h;
     message_t *mPtr = &m;
 
+    h.buf = malloc(264);
+    h.length = 0;
+
     //randomly generate a number to decide who goes first 
     // r = 0 means player1 goes first
     // r = 1 means player2 goes first
@@ -383,7 +396,12 @@ int main(int argc, char **argv)
 
     char *player2_name;
     char *player2_len;
-    int player2_name_len;    
+    int player2_name_len;   
+
+    players.length = 0;
+    //init size of names list with size 2 initially
+    players.names = malloc(sizeof(char *) * 2); 
+    players.max_size = 2;
 
     while (1) {
         remote_host_len = sizeof(remote_host);
@@ -414,10 +432,11 @@ int main(int argc, char **argv)
                         printf("message received from sock1: %s\n", m.message);
 
                         parse_message(mPtr);
-                        display_args(mPtr);
+                        //display_args(mPtr);
+
                         player1_name = m.args[2];
                         //strcpy(player1_name, m.args[2]);
-                        printf("in list: %d\n", in_names(listPtr, player1_name));
+                        //printf("in list: %d\n", in_names(listPtr, player1_name));
                         //check if name is in existing names list
                         if(in_names(listPtr, player1_name)) {
                             player_num--;
