@@ -17,53 +17,14 @@
 #include <time.h>
 
 #include "message.h"
-#include "ttt_game.h" 
+#include "ttt_game.h"
+#include "ttts.h"
 
 #define QUEUE_SIZE 8
 
-// Struct to hold player data
-struct player {
-    int id;
-    int socket;
-    char* name; 
-};
-
-/*
-    Stores game data like: 
-    board
-    players' id
-    mutex (for protection)
-    cond (when player makes a move)
-*/
-
-struct player_list {
-    char **names;
-    int length;
-};
-
-struct game_data
-{
-    int fd1, fd2;
-    char* player1_name, player2_name; 
-
-};
-
-
-typedef struct player_list player_list_t;
-typedef struct game_data game_data_t;
-
-struct queue
-{
-    int players[100];
-    int head;
-    int tail;
-};
-
-
-volatile int active = 1;
-
 //GLOBAL VARIABLES
 //string representing the current state of the board
+int active;
 char *board;
 pthread_mutex_t mutex;
 player_list_t players;
@@ -139,27 +100,6 @@ int open_listener(char *service, int queue_size)
     return sock;
 }
 
-// Function to add player ID to queue
-void enqueue(struct queue* q, int id) {
-    if (q->tail == 100) {
-        printf("Queue is full\n");
-    } else {
-        q->players[q->tail] = id;
-        q->tail++;
-    }
-}
-
-// Function to remove player ID from queue
-int dequeue(struct queue* q) {
-    if (q->head == q->tail) {
-        printf("Queue is empty\n");
-        return -1;
-    } else {
-        int id = q->players[q->head];
-        q->head++;
-        return id;
-    }
-}
 void *game_thread(void* args){
     game_data_t* g = (game_data_t*)args;
     
@@ -174,17 +114,11 @@ void *game_thread(void* args){
     handle_t *hPtr = &h;
     message_t *mPtr = &m;
 
-    char *player1_name;
-    char *player1_len;
-    int player1_name_len;
-
     int draw_suggested = 0;
     int ask_again = 0;
 
-    char *player2_name;
-    char *player2_len;
-    int player2_name_len;
-    int player_id=1;
+    char *player1_name = g->player1_name;
+    char *player2_name = g->player2_name;
 
     char *board = malloc(sizeof(char) * 10);
     init_board(board);
@@ -199,6 +133,8 @@ void *game_thread(void* args){
     int err;
     int status;
 
+    active = 1;
+
     while (active) {
         //COMMENTING THIS OUT FOR TESTING
         //if a draw was proposed on the last message
@@ -207,13 +143,13 @@ void *game_thread(void* args){
             other_player = sock2;
             curr_move = 'X';
             r = 1;
-            printf("PLAYER 1 TURN\n");
+            //printf("PLAYER 1 TURN\n");
         } else if(r && !ask_again) { 
             h.fd = sock2;
             other_player = sock1;
             curr_move = 'Y';
             r = 0;
-            printf("PLAYER 2 TURN\n");
+            //printf("PLAYER 2 TURN\n");
         }
 
         err = read_message(hPtr, mPtr);
@@ -223,19 +159,19 @@ void *game_thread(void* args){
         //didn't provide a message with the correct number of fields
         //didn't provide a message didn't have the specified number of bits
         if(!err || err == -1){
-            printf("there was an ERROR!\n");
+            //printf("there was an ERROR!\n");
             write(h.fd, m.message, strlen(m.message));
             free(m.message);
             free(h.buf);
             //write(sock2, "INVL|12|BAD MESSAGE|", 20);
-            printf("closing connection\n");
+            //printf("closing connection\n");
             break;
         } 
 
         //take discrete message from message and split it up into the different fields
         //the start of each field is defined by a '|' char
         parse_message(mPtr);
-        printf("DONE PARSING\n");
+        //printf("DONE PARSING\n");
 
         //helper method to display the contents of the args list 
         //in the message struct
@@ -253,7 +189,7 @@ void *game_thread(void* args){
         //0 means game should end
 
         status = perform_action(m.args, board, h.fd, other_player, draw_suggested);
-        printf("status: %d\n", status);
+        //printf("status: %d\n", status);
         
         if(status == -2){
             draw_suggested = 1; 
@@ -267,8 +203,8 @@ void *game_thread(void* args){
             ask_again = 0;
         }
 
-        printf("draw_suggested: %d\n", draw_suggested);
-        printf("ask_again: %d\n", ask_again);
+        //printf("draw_suggested: %d\n", draw_suggested);
+        //printf("ask_again: %d\n", ask_again);
         
         //free args
         free_args(mPtr);
@@ -301,24 +237,27 @@ void *game_thread(void* args){
     
     CODE TO REMOVE THE PLAYERS FROM THE LIST OF PLAYERS AS WELL AS FREEING RESOURCES
 
+    */
+
     pthread_mutex_lock(&mutex); 
 
-    remove_player(listPtr, name1);
-    remove_player(listPtr, name2);
-    close(fd1);
-    close(fd2);
-    free();
-    free();
-    listPtr->length = list->length - 2;
+    //DEBUG
+    printf("REMOVING player1 : %s\n", player1_name);
 
+    remove_player(listPtr, player1_name);
+    free(player1_name);
+
+    //DEBUG
+    printf("REMOVING player2 : %s\n", player2_name);
+
+    remove_player(listPtr, player2_name);
+    free(player2_name);
+    close(sock1);
+    close(sock2);
 
     pthread_mutex_unlock(&mutex);
 
-    */
-
     printf("Game Over\n");
-    close(sock1);
-    close(sock2);
     free(board);
 
     //return EXIT_SUCCESS;
@@ -328,10 +267,11 @@ void *game_thread(void* args){
 //check if names is in name
 int in_names(player_list_t *list, char *name) { 
     if(list->length == 0) { 
-        printf("list is empty");
+        printf("players list is empty\n");
         return 0;
     } else {
         for(int i = 0; i < list->length; i++) { 
+            printf("list->names[%d]: %s\n", i, list->names[i]);
             if(strcmp(list->names[i], name) == 0) { 
                 return 1;
             }
@@ -342,6 +282,7 @@ int in_names(player_list_t *list, char *name) {
 
 void add_player(player_list_t *list, char *name) {
     char *str = malloc(strlen(name)*sizeof(char));
+    strcpy(str, name);
     list->names[list->length] = str;
     list->length++;
     // return 0;
@@ -349,13 +290,33 @@ void add_player(player_list_t *list, char *name) {
 
 //NEED TO FINISH
 void remove_player(player_list_t *list, char *name) { 
+    //DEBUG
+    printf("list length before: %d\n", list->length);
+
     //iterate through players list until we reach a name == name
+    int pos = 0;
     for(int i = 0; i < list->length; i++) { 
         //this is a match
         if(strcmp(list->names[i], name) == 0) {
-            //free(list->names[i]);
-            strcpy(list->names[i], "");
+            printf("found: %s\n", list->names[i]);
+            free(list->names[i]);
+            pos = i;
         }
+    }
+
+    //shift all elements after the removed name back one position
+    for(int i = pos - 1; i < list->length - 1; i++) {
+        list->names[i] = list->names[i + 1];
+    }
+
+    list->length--;
+    //DEBUG
+    printf("list length after: %d\n", list->length);
+}
+
+void show_list(player_list_t *list) { 
+    for(int i = 0; i < list->length; i++) { 
+        printf("list[%d]: %s\n", i, list->names[i]);
     }
 }
 
@@ -395,18 +356,16 @@ int main(int argc, char **argv)
     
     puts("Listening for incoming connections");
 
-    //randomly generate a number to decide who goes first 
-    // r = 0 represents player 1 turn 
-    // r = 1 represents player 2 turn
-    r = rand() % 2;
-
-    //handler for the current message being read
-
     //initialize structs
     handle_t h;
     message_t m;
     handle_t *hPtr = &h;
     message_t *mPtr = &m;
+
+    //randomly generate a number to decide who goes first 
+    // r = 0 means player1 goes first
+    // r = 1 means player2 goes first
+    r = rand() % 2;
 
     char *player1_name;
     char *player1_len;
@@ -444,8 +403,10 @@ int main(int argc, char **argv)
             //array storing the fds of the two players 
             //sock_fds[0] - Player going first (X)
             //sock_fds[1] - Player going second (O)
-            game_data_t *g = malloc(sizeof(game_data_t));
+            game_data_t g;
+            game_data_t *gPtr = &g;
 
+            player_num = 0;
             //wait for at least two players to successfully connect to the server and send a valid |PLAY| message
             //needs to have length < 255
             //and name needs to not be in the current players list
@@ -467,11 +428,12 @@ int main(int argc, char **argv)
                         parse_message(mPtr);
                         display_args(mPtr);
                         player1_name = m.args[2];
-
+                        //strcpy(player1_name, m.args[2]);
+                        printf("in list: %d\n", in_names(listPtr, player1_name));
                         //check if name is in existing names list
                         if(in_names(listPtr, player1_name)) {
+                            player_num--;
                             write(sock1, "INVL|20|NAME ALREADY IN USE|", 28);
-
                         } else { 
                             player1_len = m.args[1];
                             player1_name_len = atoi(m.args[1]);
@@ -499,11 +461,13 @@ int main(int argc, char **argv)
                         parse_message(mPtr);
                         display_args(mPtr);
                         player2_name = m.args[2];
+                        //strcpy(player2_name, m.args[2]); 
+                        printf("in list: %d\n", in_names(listPtr, player1_name));
 
                         //check if name is in existing names list
                         if(in_names(listPtr, player2_name)) {
+                            player_num--;
                             write(sock2, "INVL|20|NAME ALREADY IN USE|", 28);
-
                         } else { 
                             player2_len = m.args[1];
                             player2_name_len = atoi(m.args[1]);
@@ -535,9 +499,9 @@ int main(int argc, char **argv)
                         strcat(str_to_send, player2_name);
                         strcat(str_to_send, "|");
                         
-                        printf("str1_to_send: %s\n", str_to_send);
-                        write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
-                        printf("\n");
+                        //printf("str1_to_send: %s\n", str_to_send);
+                        //write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                        //printf("\n");
 
                         char str2_to_send[strlen(player1_name) + 12];
                         char snum2[3];
@@ -550,12 +514,18 @@ int main(int argc, char **argv)
                         strcat(str_to_send, player1_name);
                         strcat(str_to_send, "|");
                         
-                        printf("str2_to_send: %s\n", str_to_send);
-                        write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
-                        printf("\n");
+                        //printf("str2_to_send: %s\n", str_to_send);
+                        //write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                        //printf("\n");
 
-                        g->fd1 = sock1;
-                        g->fd2 = sock2;
+                        g.fd1 = sock1;
+                        g.fd2 = sock2;
+
+                        g.player1_name = malloc(strlen(player1_name));
+                        strcpy(g.player1_name, player1_name);
+                        g.player2_name = malloc(strlen(player2_name));
+                        strcpy(g.player2_name, player2_name);
+
                     } else {
                         printf("Player 2 goes first\n");
                         char str_to_send[264];
@@ -572,9 +542,9 @@ int main(int argc, char **argv)
                         strcat(str_to_send, player1_name);
                         strcat(str_to_send, "|");
                         
-                        printf("str_to_send: %s\n", str_to_send);
-                        write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
-                        printf("\n");
+                        //printf("str_to_send: %s\n", str_to_send);
+                        //write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                        //printf("\n");
 
                         char snum2[3];
                         sprintf(snum2, "%d", player2_name_len + 2);
@@ -586,9 +556,17 @@ int main(int argc, char **argv)
                         strcat(str_to_send, player2_name);
                         strcat(str_to_send, "|");
 
-                        printf("str2_to_send: %s\n", str_to_send);
-                        write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
-                        printf("\n");
+                        //printf("str2_to_send: %s\n", str_to_send);
+                        //write(STDOUT_FILENO, str_to_send, strlen(str_to_send));
+                        //printf("\n");
+
+                        g.fd1 = sock2;
+                        g.fd2 = sock1;
+
+                        g.player1_name = malloc(strlen(player2_name));
+                        strcpy(g.player1_name, player2_name);
+                        g.player2_name = malloc(strlen(player1_name));
+                        strcpy(g.player2_name, player1_name);
                     }
                     //actually I think we just need to free_args everytime not the message 
                     //message can just be a static block of memory sizeof(message) = 264 
@@ -597,17 +575,16 @@ int main(int argc, char **argv)
                     free_args(mPtr);
                     //free message
                     free(m.message);
-
-                    g->fd1 = sock2;
-                    g->fd2 = sock1;
                 }
                 player_num++;
             }
-
+            show_list(listPtr);
+            //printf("gPtr->player1_name: %s\n", gPtr->player1_name);
+            //printf("gPtr->player2_name: %s\n", gPtr->player2_name);
             pthread_t th;
             //third argument is args to pass to the game_thread subroutine
             //this should be a struct with the names and sock fds of the players
-            int result = pthread_create(&th, NULL, game_thread, (void *)args);
+            int result = pthread_create(&th, NULL, game_thread, (void *)gPtr);
             if(result){
                 printf("Thread creation failed with err no: %d\n", result);
                 exit(EXIT_FAILURE);
