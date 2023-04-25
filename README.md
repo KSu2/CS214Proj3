@@ -92,15 +92,15 @@
   1. After running test case 1 I observed the perform the corresponding moves requested appropriately eventually ending in a "OVER|5|X Wins|" message which was the expected result
   2. After running test case 2 I observed the server sent a "INVL|14|NAME TOO LONG|" message which was expected
   3. After running test case 3 I observed the server sent a 
-  4. 
-  5. 
-  6. 
-  7. 
-  8. 
-  9. 
-  10. 
-  11. 
-  12. 
-  13. 
-  14. 
+  4. After running test case 4
+  5. After running test case 5
+  6. After running test case 6
+  7. After running test case 7
+  8. After running test case 8
+  9. After running test case 9
+  10. After running test case 10
+  11. After running test case 11
+  12. After running test case 12
+  13. After running test case 13
+  14. After running test case 14
 
