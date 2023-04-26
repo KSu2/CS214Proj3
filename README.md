@@ -1,5 +1,7 @@
 # CS214Proj3
 
+Group Members: ks1507 gs878
+
 ## Test Plan
   
   For our testing play we intent on testing the following properties of our program
