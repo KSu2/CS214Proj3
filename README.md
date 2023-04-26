@@ -13,9 +13,13 @@
    - if the message length field is greater than 255 it will send "INVL|17|MESSAGE TOO LONG|"
     
   2. Our program should detect win, lose, and draw gamestates and end the games appropriately
+  
   3. Our program should handle cases when either player sends a RSGN message appropriately
+  
   4. Our program should be able to handle DRAW requests appropriately
+  
   5. Our program should be able to support concurrent games
+  
   6. Our program should maintain a list of player names and only allow players to join with unique names that aren't on the list
 
   In order to verify that each of these properties is met by our program we will run each of the following test cases: 
