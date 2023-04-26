@@ -322,7 +322,6 @@ void *game_thread(void* args) {
     //printf("Game Over\n");
     free(board);
 
-    //return EXIT_SUCCESS;
     pthread_exit(NULL);
 }
 
@@ -423,11 +422,6 @@ int main(int argc, char **argv) {
     h.buf = malloc(264);
     h.length = 0;
 
-    //randomly generate a number to decide who goes first 
-    // r = 0 means player1 goes first
-    // r = 1 means player2 goes first
-    r = rand() % 2;
-
     char *player1_name;
     char *player1_len;
     int player1_name_len;
@@ -445,6 +439,10 @@ int main(int argc, char **argv) {
     players.max_size = 2;
 
     while (1) {
+        //randomly generate a number to decide who goes first 
+        // r = 0 means player1 goes first
+        // r = 1 means player2 goes first
+        r = rand() % 2;
         remote_host_len = sizeof(remote_host);
         if(players.length <= 252) { 
             //array storing the fds of the two players 
@@ -614,7 +612,7 @@ int main(int argc, char **argv) {
                 player_num++;
             }
             //DEBUG MESSAGE
-            show_list(listPtr);
+            //show_list(listPtr);
             pthread_t th;
             //third argument is args to pass to the game_thread subroutine
             //this should be a struct with the names and sock fds of the players

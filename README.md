@@ -77,27 +77,19 @@ Group Members: Kevin Su (ks1507), Ghautham Sambabu (gs878)
   ```
   make ttts
   make ttt
-  make test_client
   ```
   ttts - Server and game
   ttt - client which will take input from STDIN
-  test_client - client which will take input from a file name passed as an argument
 
   Start server:
   ```
   ./ttts <port-number>
   ```
 
-  Start Test_client: 
-  ```
-  ./test_client <host-name> <port-number> <file-name>
-  ```
-  
   Start client: 
   ```
   ./ttt <domain-name> <port-number>
   ```
-
 
   Test_client will read line by line from the corresponding test <file-name> and send the messages to the server. After each message it will wait for a response from the server before sending the next message.
 
