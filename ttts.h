@@ -17,3 +17,4 @@ typedef struct game_data game_data_t;
 int in_names(player_list_t *list, char *name);
 void add_player(player_list_t *list, char *name);
 void remove_player(player_list_t *list, char *name);
+void show_list(player_list_t *list);
