@@ -1,18 +1,6 @@
 CC = gcc 
 CFLAGS = -std=c99 -g -Wall -fsanitize=address
 
-serve: echoserv1.o
-	$(CC) $(CCFLAGS) $^ -o $@
-
-echoserv1.o: echoserv1.c
-	$(CC) $(CCFLAGS) -c $^
-
-xmit: xmit.o
-	$(CC) $(CCFLAGS) $^ -o $@
-
-xmit.o: xmit.c
-	$(CC) $(CCFLAGS) -c $^
-
 ttt: ttt.o
 	$(CC) $(CCFLAGS) $^ -o $@
 
